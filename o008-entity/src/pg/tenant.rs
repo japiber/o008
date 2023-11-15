@@ -34,12 +34,6 @@ impl Tenant {
     }
 }
 
-impl From<Tenant> for TenantDao {
-    fn from(t: Tenant) -> Self {
-        t.dao()
-    }
-}
-
 impl From<TenantDao> for Tenant {
     fn from(value: TenantDao) -> Self {
         Self (
@@ -57,26 +51,26 @@ impl<'q> Entity<TenantInner, TenantDao, PgQueryContext<'q>, Postgres> for Tenant
             None => dao.create().await,
             Some(_) => dao.update().await
         };
-        self.1 = Some(dao);
+        self.1 = Some(*dao);
         p
     }
 
-    fn dao(&self) -> TenantDao {
+    fn dao(&self) -> Box<TenantDao> {
         match &self.1 {
-            None => TenantDao {
+            None => Box::new(TenantDao {
                 id: uuid::Uuid::new_v4(),
                 name: self.0.name.clone(),
                 coexisting: self.0.coexisting,
-            },
-            Some(t) => TenantDao {
+            }),
+            Some(t) => Box::new(TenantDao {
                 id: t.id,
                 name: self.0.name.clone(),
                 coexisting: self.0.coexisting
-            }
+            })
         }
     }
 
-    fn inner(&self) -> &TenantInner {
-        &self.0
+    fn inner(&self) -> Box<TenantInner> {
+        Box::new(self.0.clone())
     }
 }

@@ -9,7 +9,7 @@ use crate::Entity;
 
 type BuilderDao = o008_dal::pg::Builder;
 
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub struct BuilderInner {
     pub name: String,
     pub active: bool,
@@ -26,29 +26,29 @@ impl<'q> Entity<BuilderInner, BuilderDao, PgQueryContext<'q>, Postgres> for Buil
             None => (&dao).create().await,
             Some(_) => (&dao).update().await
         };
-        self.1 = Some(dao);
+        self.1 = Some(*dao);
         p
     }
 
-    fn dao(&self) -> BuilderDao {
+    fn dao(&self) -> Box<BuilderDao> {
         match &self.1 {
-            None => BuilderDao {
+            None => Box::new(BuilderDao {
                 id: uuid::Uuid::new_v4(),
                 name: String::from(self.name()),
                 active: self.active(),
                 command: String::from(self.command())
-            },
-            Some(d) => BuilderDao {
+            }),
+            Some(d) => Box::new(BuilderDao {
                 id: d.id,
                 name: String::from(self.name()),
                 active: self.active(),
                 command: String::from(self.command())
-            }
+            })
         }
     }
 
-    fn inner(&self) -> &BuilderInner {
-        &self.0
+    fn inner(&self) -> Box<BuilderInner> {
+        Box::new(self.0.clone())
     }
 }
 

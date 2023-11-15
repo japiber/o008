@@ -2,7 +2,7 @@ use tracing::level_filters::LevelFilter;
 use tracing::{error, info};
 use o008_setting::{app_args, app_config, AppArgument, AppCommand, initialize_tracing};
 use o008_entity::{Builder, Entity};
-use o008_entity::entity::Tenant;
+use o008_entity::pg::Tenant;
 
 
 #[tracing::instrument]
