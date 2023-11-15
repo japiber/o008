@@ -1,0 +1,22 @@
+[package]
+name = "o008-dal"
+version.workspace = true
+license.workspace = true
+edition.workspace = true
+repository.workspace = true
+keywords.workspace = true
+categories.workspace = true
+authors.workspace = true
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+uuid = { version = "1.5", features = ["v4", "fast-rng", "macro-diagnostics", "serde"] }
+sqlx = { version = "0.7", features = ["runtime-tokio", "tls-rustls", "any", "postgres", "macros", "time", "chrono", "bigdecimal", "json", "uuid", "migrate"] }
+tokio = { version = "1", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+async-trait = { version = "0.1", features = [] }
+lazy_static = { version = "1.0", features = [] }
+async_once = "0.2"
+o008-setting = {path = "../o008-setting" }
