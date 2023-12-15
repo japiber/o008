@@ -1,6 +1,5 @@
 use config::{Config, ConfigError};
 use serde::{Deserialize};
-use tracing::info;
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct Database {
@@ -43,7 +42,6 @@ impl AppConfig {
             .add_source(config::File::with_name(&config_file))
             .build()?;
 
-        info!("deserializing configuration file {}", config_file);
         s.try_deserialize()
     }
 

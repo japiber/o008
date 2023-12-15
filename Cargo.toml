@@ -2,10 +2,12 @@
 resolver = "2"
 members = [
     ".",
+    "o008-common",
     "o008-setting",
     "o008-dal",
     "o008-entity",
     "o008-cli",
+    "o008-dispatcher",
 ]
 
 [workspace.package]
@@ -19,7 +21,3 @@ authors = [
     "Juan A. Piñero Berdugo <japiber@gmail.com>"
 ]
 
-[workspace.dependencies]
-o008-setting = { version = "=0.1.0", path = "o008-setting" }
-o008-dal = { version = "=0.1.0", path = "o008-dal" }
-o008-entity = { version = "=0.1.0", path = "o008-entity" }

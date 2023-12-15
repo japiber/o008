@@ -1,24 +1,28 @@
 use std::fmt::{Display, Formatter};
+use std::error::Error as StdError;
+
+type BoxDynError = Box<dyn StdError + Send + Sync + 'static>;
 
 #[derive(Debug)]
-pub enum Error {
-    DataCreation(String),
-    DataNotFound(String),
-    DataUpdate(String),
-    DataDelete(String),
-    DataGenericError(String),
+pub enum DalError {
+    DataCreation(BoxDynError),
+    DataNotFound(BoxDynError),
+    DataUpdate(BoxDynError),
+    DataDelete(BoxDynError),
+    DataGenericError(BoxDynError),
 }
 
-impl Display for Error {
+impl Display for DalError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            Error::DataCreation(e) => write!(f, "Could not create data: {}", e),
-            Error::DataNotFound(e) => write!(f, "data not found: {}", e),
-            Error::DataUpdate(e) => write!(f, "could not update data: {}", e),
-            Error::DataDelete(e) => write!(f, "could not delete data: {}", e),
-            Error::DataGenericError(e) => write!(f, "data error: {}", e),
+            DalError::DataCreation(e) => write!(f, "could not create: {}", e),
+            DalError::DataNotFound(e) => write!(f, "not found: {}", e),
+            DalError::DataUpdate(e) => write!(f, "could not update: {}", e),
+            DalError::DataDelete(e) => write!(f, "could not delete: {}", e),
+            DalError::DataGenericError(e) => write!(f, "generic error: {}", e),
         }
     }
 }
 
-impl std::error::Error for Error {}
+impl StdError for DalError {
+}

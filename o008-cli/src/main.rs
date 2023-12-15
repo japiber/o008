@@ -1,69 +1,22 @@
-use tracing::level_filters::LevelFilter;
 use tracing::{error, info};
-use o008_setting::{app_args, app_config, AppArgument, AppCommand, initialize_tracing};
-use o008_entity::{Builder, Entity};
-use o008_entity::pg::Tenant;
-
+use o008_dispatcher::AsyncDispatcher;
+use o008_setting::{app_args, app_config, AppLogLevel, initialize_tracing};
+use o008_common::{defer, ScopeCall};
 
 #[tracing::instrument]
 #[tokio::main]
 async fn main() {
-    println!("Hello, world!");
+    tracing::subscriber::set_global_default(initialize_tracing()).expect("could not initialize tracing");
+    info!("tracing level: {:?}", app_args().log.unwrap_or(AppLogLevel::Off));
 
-    let args = app_args();
-    tracing::subscriber::set_global_default(
-        match args.log {
-            None => initialize_tracing(LevelFilter::OFF),
-            Some(l) => initialize_tracing(Into::<LevelFilter>::into(l))
-        }).expect("TODO: panic message");
-    info!("tracing level {:?}", args.log);
+    defer!(println!("end"));
 
-    println!("dn uri {}", app_config().database().uri());
+    info!("deployment api {}", app_config().deployment_api().address());
 
-    do_command(&args).await;
-}
-
-
-#[tracing::instrument]
-async fn do_command(args: &AppArgument) {
-
-   if let Some(cmd) = args.command.clone() {
-       match cmd {
-           AppCommand::CreateBuilder { name, active, cmd } => {
-               let mut builder = Builder::new(&name, active, &cmd);
-               match builder.persist().await {
-                   Ok(_) => info!("builder {:?} created successfully", builder.inner()),
-                   Err(_) => error!("could not create builder {:?}", builder.inner())
-               }
-           },
-           AppCommand::GetBuilder { name} => {
-               if let Some(b) = Builder::search_name(&name).await {
-                  println!("'{}' builder found: {:?}", &name, b.inner())
-               } else {
-                   error!("'{}' builder not found", &name)
-               }
-           },
-           AppCommand::DeleteBuilder { name } => {
-               if let Some(mut b) = Builder::search_name(&name).await {
-                   println!("'{}' builder found: {:?}", &name, b.inner());
-                   match b.destroy().await {
-                       Ok(_) => println!("builder '{}' has benn destroyed", b.name()),
-                       Err(e) => println!("could not destroy builder: {}", e)
-                   }
-               } else {
-                   error!("'{}' builder not found", &name)
-               }
-           },
-           AppCommand::CreateTenant { name, coexisting} => {
-               let mut t = Tenant::new(&name, coexisting);
-               match t.persist().await {
-                   Ok(_) => info!("tenant {:?} created successfully", t.inner()),
-                   Err(_) => error!("could not create tenant {:?}", t.inner())
-               }
-           }
-       }
-   }
-
-
-
+    if let Some(cmd) = &app_args().command {
+        match cmd.execute().await {
+            Ok(v) => println!("{}", serde_json::to_string_pretty(&v).unwrap()),
+            Err(e) => error!("{}", e)
+        }
+    }
 }
