@@ -35,5 +35,5 @@ pub enum AppCommand {
     GetApplication {
         #[arg(short, long)]
         name: String,
-    },
+    }
 }

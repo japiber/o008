@@ -1,7 +1,7 @@
 use std::fmt::{Display, Formatter};
 use std::error::Error as StdError;
+use o008_common::BoxDynError;
 
-type BoxDynError = Box<dyn StdError + Send + Sync + 'static>;
 
 #[derive(Debug)]
 pub enum DalError {
