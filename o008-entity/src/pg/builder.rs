@@ -90,7 +90,7 @@ impl Builder {
                 Some(From::<BuilderDao>::from(bb))
             },
             Err(e) => {
-                info!("builder name {} not found: {}", name, e);
+                info!("get builder by name '{}': {}", name, e);
                 None
             }
         }

@@ -36,8 +36,8 @@ impl<'p> QueryContext<Postgres> for PgQueryContext<'p> {
         match query.fetch_all(self.pool()).await {
             Ok(t) => Ok(t),
             Err(e) => match e {
-                sqlx::Error::RowNotFound => Err(error::DalError::DataNotFound(Box::new(e))),
-                _ => Err(error::DalError::DataGenericError(Box::new(e))),
+                sqlx::Error::RowNotFound => Err(error::DalError::DataNotFound(e)),
+                _ => Err(error::DalError::DataGenericError(e)),
             },
         }
     }
@@ -48,8 +48,8 @@ impl<'p> QueryContext<Postgres> for PgQueryContext<'p> {
         match query.fetch_one(self.pool()).await {
             Ok(t) => Ok(Box::new(t)),
             Err(e) => match e {
-                sqlx::Error::RowNotFound => Err(error::DalError::DataNotFound(Box::new(e))),
-                _ => Err(error::DalError::DataGenericError(Box::new(e))),
+                sqlx::Error::RowNotFound => Err(error::DalError::DataNotFound(e)),
+                _ => Err(error::DalError::DataGenericError(e)),
             },
         }
     }
@@ -68,7 +68,7 @@ impl<'p> CommandContext<Postgres> for PgCommandContext<'p> {
     async fn execute<'q>(&self, query: Query<'q, Postgres, PgArguments>) -> Result<(), error::DalError> {
         match query.execute(self.pool()).await {
             Ok(_) => Ok(()),
-            Err(e) => Err(error::DalError::DataCreation(Box::new(e))),
+            Err(e) => Err(error::DalError::DataCreation(e)),
         }
     }
 }

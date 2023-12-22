@@ -1,5 +1,7 @@
 use std::sync::OnceLock;
 use async_trait::async_trait;
+use tokio::task;
+use tokio::task::JoinHandle;
 use crate::dispatch_channel::DispatchChannel;
 
 pub use error::{AppCommandError, DispatcherError, InternalCommandError};
@@ -32,13 +34,20 @@ pub trait DispatchPublisher<S> {
 }
 
 
-pub async fn multi_dispatcher() {
-    loop {
-        single_dispatcher().await
-    }
+pub fn command_poll() -> JoinHandle<()> {
+    task::spawn(async {
+        loop {
+            let r = command_dispatch().await;
+            if let Some(DispatcherError::InternalCommand(i)) = r.1  {
+                match i {
+                    InternalCommandError::Quit(_) => break
+                }
+            }
+        }
+    })
 }
 
-pub async fn single_dispatcher() {
+pub async fn command_dispatch() -> ((), Option<DispatcherError>) {
     let cmd = cmd_dispatch_channel().recv().await;
     match *cmd {
         DispatchCommand::App(app) => app.dispatch().await.publish(),

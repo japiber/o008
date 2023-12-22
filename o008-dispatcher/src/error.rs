@@ -1,19 +1,19 @@
 use std::fmt::{Display, Formatter};
-use o008_common::BoxDynError;
 
-#[derive(Debug)]
+
+#[derive(Debug, Clone)]
 pub enum AppCommandError {
-    Create(BoxDynError),
+    Create(String),
     NotFound(String),
-    Destroy(BoxDynError),
+    Destroy(String),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum InternalCommandError {
     Quit(Option<String>)
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum DispatcherError {
     AppCommand(AppCommandError),
     InternalCommand(InternalCommandError),
@@ -22,9 +22,9 @@ pub enum DispatcherError {
 impl Display for AppCommandError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            AppCommandError::Create(e) => write!(f, "create error: {}", e),
-            AppCommandError::NotFound(s) => write!(f, "not found error: {}", s),
-            AppCommandError::Destroy(e) => write!(f, "destroy error: {}", e),
+            AppCommandError::Create(s) => write!(f, "create: {}", s),
+            AppCommandError::NotFound(s) => write!(f, "not found: {}", s),
+            AppCommandError::Destroy(s) => write!(f, "destroy: {}", s),
         }
     }
 }
@@ -47,8 +47,8 @@ impl std::error::Error for InternalCommandError {}
 impl Display for DispatcherError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            DispatcherError::AppCommand(e) => write!(f, "{}", e),
-            DispatcherError::InternalCommand(e) => write!(f, "{}", e),
+            DispatcherError::AppCommand(e) => write!(f, "app command: {}", e),
+            DispatcherError::InternalCommand(e) => write!(f, "internal command: {}", e),
         }
     }
 }

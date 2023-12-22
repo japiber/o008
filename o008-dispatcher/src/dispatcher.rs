@@ -1,15 +1,11 @@
-use std::process::exit;
 use async_trait::async_trait;
 use tracing::error;
 use o008_setting::AppCommand;
 use crate::action::{create_application_action, create_builder_action, create_tenant_action, delete_builder_action, get_application_action, get_builder_action};
-use crate::{AsyncDispatcher, DispatchPublisher, DispatchResult, InternalCommandError};
+use crate::{AsyncDispatcher, DispatchPublisher, DispatchResult};
 use crate::dispatch_command::InternalCommand;
 use crate::error::DispatcherError;
 use crate::error::InternalCommandError::Quit;
-
-
-
 
 
 #[async_trait]
@@ -27,31 +23,20 @@ impl AsyncDispatcher<serde_json::Value> for AppCommand {
     }
 }
 
-impl DispatchPublisher<()> for DispatchResult<serde_json::Value> {
+impl DispatchPublisher<((), Option<DispatcherError>)> for DispatchResult<serde_json::Value> {
     #[tracing::instrument]
-    fn publish(&self) {
+    fn publish(&self) -> ((), Option<DispatcherError>) {
         match self {
-            Ok(v) => println!("{}", serde_json::to_string_pretty(&v).unwrap()),
-            Err(e) => error!("{}", e),
+            Ok(v) => (println!("{}", serde_json::to_string_pretty(&v).unwrap()), None),
+            Err(e) => (error!("{}", e.to_string()), None),
         }
     }
 }
 
-impl DispatchPublisher<()> for DispatchResult<()> {
+impl DispatchPublisher<((), Option<DispatcherError>)> for DispatchResult<()> {
     #[tracing::instrument]
-    fn publish(&self) {
-        match self {
-            Ok(_) => {}
-            Err(e) => match e {
-                DispatcherError::AppCommand(_) => {}
-                DispatcherError::InternalCommand(i) => match i {
-                    InternalCommandError::Quit(_) => {
-                        println!("{}", i);
-                        exit(0)
-                    }
-                }
-            }
-        }
+    fn publish(&self) -> ((), Option<DispatcherError>) {
+        self.clone().map_or_else(|e| ((), Some(e.clone())), |v| (v, None))
     }
 }
 

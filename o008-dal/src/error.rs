@@ -1,15 +1,14 @@
 use std::fmt::{Display, Formatter};
 use std::error::Error as StdError;
-use o008_common::BoxDynError;
 
 
 #[derive(Debug)]
 pub enum DalError {
-    DataCreation(BoxDynError),
-    DataNotFound(BoxDynError),
-    DataUpdate(BoxDynError),
-    DataDelete(BoxDynError),
-    DataGenericError(BoxDynError),
+    DataCreation(sqlx::Error),
+    DataNotFound(sqlx::Error),
+    DataUpdate(sqlx::Error),
+    DataDelete(sqlx::Error),
+    DataGenericError(sqlx::Error),
 }
 
 impl Display for DalError {
