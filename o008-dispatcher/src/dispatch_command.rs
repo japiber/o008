@@ -1,10 +1,5 @@
-use o008_setting::AppCommand;
+use o008_common::{AppCommand, InternalCommand};
 
-
-#[derive(Debug, Clone)]
-pub enum InternalCommand {
-    Quit
-}
 
 #[derive(Debug, Clone)]
 pub enum DispatchCommand {

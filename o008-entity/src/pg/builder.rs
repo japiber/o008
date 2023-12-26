@@ -6,6 +6,7 @@ use uuid::Uuid;
 use o008_dal::DaoCommand;
 use o008_dal::pg::{PgCommandContext, PgQueryContext};
 use crate::{Entity, EntityError};
+use o008_common::BuilderRequest;
 
 type BuilderDao = o008_dal::pg::Builder;
 
@@ -14,7 +15,7 @@ pub struct Builder {
     pub id: Uuid,
     pub name: String,
     pub active: bool,
-    pub command: String,
+    pub build_command: String,
 }
 
 #[async_trait]
@@ -32,7 +33,7 @@ impl<'q> Entity<BuilderDao, PgQueryContext<'q>, PgCommandContext<'q>, Postgres> 
                     id: dao.id(),
                     name: String::from(&self.name),
                     active: self.active,
-                    command: String::from(&self.command),
+                    build_command: String::from(&self.build_command),
                 }))
             },
             Err(e) => Err(EntityError::Persist(e))
@@ -52,9 +53,9 @@ impl<'q> Entity<BuilderDao, PgQueryContext<'q>, PgCommandContext<'q>, Postgres> 
 
     fn dao(&self) -> Box<BuilderDao> {
         if self.id.is_nil() {
-            Box::new(BuilderDao::new(Uuid::new_v4(), &self.name, self.active, &self.command))
+            Box::new(BuilderDao::new(Uuid::new_v4(), &self.name, self.active, &self.build_command))
         } else {
-            Box::new(BuilderDao::new(self.id, &self.name, self.active, &self.command))
+            Box::new(BuilderDao::new(self.id, &self.name, self.active, &self.build_command))
         }
     }
 }
@@ -65,19 +66,30 @@ impl From<BuilderDao> for Builder {
             id: b.id(),
             name: String::from(b.name()),
             active: b.active(),
-            command: String::from(b.command())
+            build_command: String::from(b.build_command())
 
         }
     }
 }
 
+impl From<&BuilderRequest> for Builder {
+    fn from(value: &BuilderRequest) -> Self {
+        Self {
+            id: Uuid::nil(),
+            name: String::from(value.name()),
+            active: value.active(),
+            build_command: String::from(value.build_command()),
+        }
+    }
+}
+
 impl Builder {
-    pub fn new(name: &str, active: bool, command: &str) -> Self {
+    pub fn new(name: &str, active: bool, build_command: &str) -> Self {
         Self {
             id: Uuid::nil(),
             name: String::from(name),
             active,
-            command: String::from(command)
+            build_command: String::from(build_command)
         }
     }
 

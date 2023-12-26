@@ -6,6 +6,7 @@ pub enum AppCommandError {
     Create(String),
     NotFound(String),
     Destroy(String),
+    InvalidRequest(String),
 }
 
 #[derive(Debug, Clone)]
@@ -25,6 +26,7 @@ impl Display for AppCommandError {
             AppCommandError::Create(s) => write!(f, "create: {}", s),
             AppCommandError::NotFound(s) => write!(f, "not found: {}", s),
             AppCommandError::Destroy(s) => write!(f, "destroy: {}", s),
+            AppCommandError::InvalidRequest(s) => write!(f, "invalid request: {}", s),
         }
     }
 }

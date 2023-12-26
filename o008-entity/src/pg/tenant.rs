@@ -34,7 +34,7 @@ impl Tenant {
                 Some(From::<TenantDao>::from(tt))
             },
             Err(e) => {
-                info!("builder {} not found: {}", name, e);
+                info!("tenant {} not found: {}", name, e);
                 None
             }
         }

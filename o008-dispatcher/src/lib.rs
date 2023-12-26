@@ -5,7 +5,7 @@ use tokio::task::JoinHandle;
 use crate::dispatch_channel::DispatchChannel;
 
 pub use error::{AppCommandError, DispatcherError, InternalCommandError};
-pub use dispatch_command::{DispatchCommand, InternalCommand};
+pub use dispatch_command::DispatchCommand;
 
 mod dispatcher;
 mod action;

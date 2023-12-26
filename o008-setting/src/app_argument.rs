@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 use clap::{Parser};
-use crate::app_command::AppCommand;
+use o008_common::AppCommand;
 use crate::AppLogLevel;
 
 

@@ -8,7 +8,7 @@ use crate::pg::{PgCommandContext, PgQueryContext};
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, sqlx::FromRow)]
 pub struct Application {
-    pub id: uuid::Uuid,
+    pub id: Uuid,
     pub name: String,
     pub tenant: uuid::Uuid,
     pub class_unit: String,
@@ -76,7 +76,7 @@ impl Application {
     }
 
     pub fn tenant(&self) -> Uuid {
-        self.id
+        self.tenant
     }
 
     pub fn class_unit(&self) -> &str {

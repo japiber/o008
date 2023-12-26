@@ -95,7 +95,7 @@ impl<'q> AsyncFrom<ApplicationDao, PgQueryContext<'q>, PgCommandContext<'q>, Pos
             id: td.id(),
             name: String::from(&value.name),
             tenant: Tenant::from(*td),
-            class_unit: "".to_string(),
+            class_unit: String::from(&value.class_unit),
         }
     }
 }
