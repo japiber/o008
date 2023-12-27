@@ -8,7 +8,9 @@ use sqlx::{Database};
 use o008_dal::{CommandContext, DaoCommand, DaoQuery, QueryContext};
 
 pub use error::EntityError;
+pub use pg::Application;
 pub use pg::Builder;
+pub use pg::Service;
 pub use pg::Tenant;
 
 

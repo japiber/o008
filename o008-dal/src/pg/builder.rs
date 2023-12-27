@@ -7,7 +7,7 @@ use crate::pg::{PgCommandContext, PgQueryContext};
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, sqlx::FromRow)]
 pub struct Builder {
-    id: uuid::Uuid,
+    id: Uuid,
     name: String,
     active: bool,
     build_command: String,

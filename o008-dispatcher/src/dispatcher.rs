@@ -1,8 +1,7 @@
 use async_trait::async_trait;
 use tracing::error;
 use o008_common::{AppCommand, InternalCommand};
-use crate::action::{create_application_action, create_builder_action, create_tenant_action, delete_builder_action, get_application_action, get_builder_action, get_tenant_action};
-use crate::{AsyncDispatcher, DispatchPublisher, DispatchResult};
+use crate::{action, AsyncDispatcher, DispatchPublisher, DispatchResult};
 use crate::error::DispatcherError;
 use crate::error::InternalCommandError::Quit;
 
@@ -12,13 +11,15 @@ impl AsyncDispatcher<serde_json::Value> for AppCommand {
     #[tracing::instrument]
     async fn dispatch(&self) -> DispatchResult<serde_json::Value> {
         match self {
-            AppCommand::CreateBuilder { value } => create_builder_action(value).await,
-            AppCommand::GetBuilder { value} => get_builder_action(value).await,
-            AppCommand::DeleteBuilder { value } => delete_builder_action(value).await,
-            AppCommand::CreateTenant { value} => create_tenant_action(value).await,
-            AppCommand::GetTenant { value } => get_tenant_action(value).await,
-            AppCommand::CreateApplication { value} => create_application_action(value).await,
-            AppCommand::GetApplication { value } => get_application_action(value).await,
+            AppCommand::CreateBuilder { value } => action::builder::create(value).await,
+            AppCommand::GetBuilder { value} => action::builder::get(value).await,
+            AppCommand::DeleteBuilder { value } => action::builder::delete(value).await,
+            AppCommand::CreateTenant { value} => action::tenant::create(value).await,
+            AppCommand::GetTenant { value } => action::tenant::get(value).await,
+            AppCommand::CreateApplication { value} => action::application::create(value).await,
+            AppCommand::GetApplication { value } => action::application::get(value).await,
+            AppCommand::CreateService { value } => action::service::create(value).await,
+            AppCommand::GetService { value } => action::service::get(value).await,
         }
     }
 }

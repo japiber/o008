@@ -25,27 +25,28 @@ SELECT audit.audit_table('public.tenant');
 
 CREATE TABLE IF NOT EXISTS application
 (
-    id         uuid              NOT NULL,
-    name       character varying NOT NULL,
-    tenant     uuid              NOT NULL,
-    class_unit character varying NOT NULL,
-    CONSTRAINT application_pkey PRIMARY KEY (id),
-    CONSTRAINT application_name_tenant_key UNIQUE (name, tenant),
-    CONSTRAINT application_tenant_fkey FOREIGN KEY (tenant) REFERENCES tenant (id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION
+    id                uuid              NOT NULL,
+    name              character varying NOT NULL,
+    tenant            uuid              NOT NULL,
+    class_unit        character varying NOT NULL,
+    functional_group  character varying NOT NULL,
+    CONSTRAINT        application_pkey PRIMARY KEY (id),
+    CONSTRAINT        application_name_tenant_key UNIQUE (name, tenant),
+    CONSTRAINT        application_tenant_fkey FOREIGN KEY (tenant) REFERENCES tenant (id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION
 );
 
 SELECT audit.audit_table('public.application');
 
 CREATE TABLE IF NOT EXISTS service
 (
-    id           uuid              NOT NULL,
-    name         character varying NOT NULL,
-    application  uuid              NOT NULL,
-    status       character varying,
-    default_repo character varying NOT NULL,
-    CONSTRAINT   service_pkey PRIMARY KEY (id),
-    CONSTRAINT   service_name_key UNIQUE (name, application),
-    CONSTRAINT   service_application_fkey FOREIGN KEY (application) REFERENCES application (id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION
+    id            uuid              NOT NULL,
+    name          character varying NOT NULL,
+    original_name character varying NOT NULL,
+    application   uuid              NOT NULL,
+    default_repo  character varying NOT NULL,
+    CONSTRAINT    service_pkey PRIMARY KEY (id),
+    CONSTRAINT    service_name_key UNIQUE (name, application),
+    CONSTRAINT    service_application_fkey FOREIGN KEY (application) REFERENCES application (id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION
 );
 
 SELECT audit.audit_table('public.service');

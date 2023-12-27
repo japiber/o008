@@ -1,5 +1,5 @@
 use clap::Subcommand;
-use crate::{ApplicationRequest, BuilderRequest, TenantRequest};
+use crate::{ApplicationRequest, BuilderRequest, ServiceRequest, TenantRequest};
 
 #[derive(Subcommand, Debug, Clone)]
 pub enum AppCommand {
@@ -30,5 +30,13 @@ pub enum AppCommand {
     GetApplication {
         #[arg(short, long)]
         value: ApplicationRequest,
+    },
+    CreateService {
+        #[arg(short, long)]
+        value: ServiceRequest,
+    },
+    GetService {
+        #[arg(short, long)]
+        value: ServiceRequest,
     }
 }

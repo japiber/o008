@@ -12,6 +12,7 @@ type BuilderDao = o008_dal::pg::Builder;
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub struct Builder {
+    #[serde(rename(serialize = "_id", deserialize = "id"))]
     pub id: Uuid,
     pub name: String,
     pub active: bool,

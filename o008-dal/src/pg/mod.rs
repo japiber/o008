@@ -1,6 +1,7 @@
 mod builder;
 mod tenant;
 mod application;
+mod service;
 
 use async_trait::async_trait;
 use sqlx::{FromRow, Pool, Postgres};
@@ -8,11 +9,12 @@ use sqlx::postgres::{PgArguments, PgRow, PgPoolOptions};
 use sqlx::query::{Query, QueryAs};
 use crate::{QueryContext, error, CommandContext};
 use async_once::AsyncOnce;
+use o008_setting::app_config;
 
 pub use builder::Builder;
 pub use tenant::Tenant;
 pub use application::Application;
-use o008_setting::app_config;
+pub use service::Service;
 
 #[derive(Debug, Clone)]
 pub struct PgQueryContext<'p>(&'p Pool<Postgres>);

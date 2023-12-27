@@ -12,9 +12,10 @@ pub type TenantDao = o008_dal::pg::Tenant;
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub struct Tenant {
-    pub id: Uuid,
-    pub name: String,
-    pub coexisting: bool,
+    #[serde(rename(serialize = "_id", deserialize = "id"))]
+    id: Uuid,
+    name: String,
+    coexisting: bool,
 }
 
 impl Tenant {
@@ -24,6 +25,18 @@ impl Tenant {
             name: String::from(name),
             coexisting
         }
+    }
+
+    pub fn id(&self) -> Uuid {
+        self.id
+    }
+
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn coexisting(&self) -> bool {
+        self.coexisting
     }
 
     pub async fn get_by_name(name: &str) -> Option<Self> {
