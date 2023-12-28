@@ -125,7 +125,7 @@ impl<'q> AsyncFrom<ServiceDao, PgQueryContext<'q>, PgCommandContext<'q>, Postgre
             id: value.id(),
             name: String::from(value.name()),
             original_name: String::from(value.original_name()),
-            application: AsyncFrom::<crate::pg::application::ApplicationDao, PgQueryContext, PgCommandContext, Postgres>::from(*td).await,
+            application: AsyncFrom::<ApplicationDao, PgQueryContext, PgCommandContext, Postgres>::from(*td).await,
             default_repo: String::from(value.default_repo()),
         }
     }

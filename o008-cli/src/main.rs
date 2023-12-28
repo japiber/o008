@@ -1,8 +1,7 @@
 use tracing::{info};
-use o008_dispatcher::{cmd_dispatch_channel, DispatchCommand, command_poll};
+use o008_dispatcher::{cmd_dispatch_channel, DispatchCommand, CommandQueue};
 use o008_setting::{app_args, AppLogLevel, initialize_tracing};
 use o008_common::{defer, ScopeCall};
-use o008_common::InternalCommand::Quit;
 
 #[tracing::instrument]
 #[tokio::main]
@@ -16,11 +15,12 @@ async fn main() {
 }
 
 async fn command_dispatcher() {
-    let dispatcher = command_poll();
+    let dispatcher = CommandQueue::new(true);
+
     if let Some(cmd) = &app_args().command {
         cmd_dispatch_channel().send(Box::new(DispatchCommand::from(cmd.clone())));
-        cmd_dispatch_channel().send(Box::new(DispatchCommand::from(Quit)))
+        //cmd_dispatch_channel().send(Box::new(DispatchCommand::from(Quit)))
     }
 
-    dispatcher.await.expect("dispatcher await error")
+    dispatcher.poll().await
 }

@@ -4,7 +4,7 @@ use o008_common::AppCommand;
 use crate::AppLogLevel;
 
 
-const DEFAULT_CONFIG_FILE: &'static str = "./config.toml";
+const DEFAULT_CONFIG_FILE: &str = "./config.toml";
 
 
 
@@ -22,15 +22,16 @@ pub struct AppArgument {
 }
 
 impl AppArgument {
-
-    pub fn new() -> Self {
-        AppArgument::parse()
-    }
-
     pub fn get_config(&self) -> String {
         match &self.config {
             None => String::from(DEFAULT_CONFIG_FILE),
             Some(pb) => String::from(pb.to_str().expect("specified file is not valid"))
         }
+    }
+}
+
+impl Default for AppArgument {
+    fn default() -> Self {
+        AppArgument::parse()
     }
 }

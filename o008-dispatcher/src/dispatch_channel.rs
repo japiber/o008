@@ -9,13 +9,6 @@ pub struct DispatchChannel<T> {
 }
 
 impl<T> DispatchChannel<T> {
-    pub fn new() -> Self {
-        Self {
-            messages: Mutex::new(VecDeque::new()),
-            notify_on_sent: Notify::new()
-        }
-    }
-
     pub fn send(&self, msg: T) {
         let mut locked_queue = self.messages.lock().unwrap();
         locked_queue.push_back(msg);
@@ -53,6 +46,15 @@ impl<T> DispatchChannel<T> {
             // Reset the future in case another call to
             // `try_recv` got the message before us.
             future.set(self.notify_on_sent.notified());
+        }
+    }
+}
+
+impl<T> Default for DispatchChannel<T> {
+    fn default() -> Self {
+        Self {
+            messages: Mutex::new(VecDeque::new()),
+            notify_on_sent: Notify::new()
         }
     }
 }

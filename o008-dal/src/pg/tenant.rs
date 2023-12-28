@@ -7,7 +7,7 @@ use crate::pg::{PgCommandContext, PgQueryContext};
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, sqlx::FromRow)]
 pub struct Tenant {
-    id: uuid::Uuid,
+    id: Uuid,
     name: String,
     coexisting: bool,
 }
@@ -48,7 +48,7 @@ impl<'q> DaoQuery<PgQueryContext<'q>, Postgres> for Tenant {
         let qx = Self::query_ctx().await;
         qx.fetch_one(
             sqlx::query_as::<_, Self>("SELECT id, name, coexisting FROM tenant WHERE id=$1")
-            .bind(uuid::Uuid::parse_str(key["id"].as_str().unwrap()).unwrap())
+            .bind(Uuid::parse_str(key["id"].as_str().unwrap()).unwrap())
         ).await
     }
 }

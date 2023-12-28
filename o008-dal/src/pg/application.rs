@@ -10,7 +10,7 @@ use crate::pg::{PgCommandContext, PgQueryContext};
 pub struct Application {
     id: Uuid,
     name: String,
-    tenant: uuid::Uuid,
+    tenant: Uuid,
     class_unit: String,
     functional_group: String,
 }
@@ -20,7 +20,7 @@ impl<'q> DaoQuery<PgQueryContext<'q>, Postgres> for Application {
     async fn read(key: Value) -> Result<Box<Self>, DalError> {
         Self::query_ctx().await.fetch_one(
             sqlx::query_as::<_, Self>("SELECT id, name, tenant, class_unit, functional_group FROM application WHERE id=$1")
-                .bind(sqlx::types::Uuid::parse_str(key["id"].as_str().unwrap()).unwrap())
+                .bind(Uuid::parse_str(key["id"].as_str().unwrap()).unwrap())
         ).await
     }
 }

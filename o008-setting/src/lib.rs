@@ -18,7 +18,7 @@ static ST_APP_CONFIG: OnceCell<AppConfig> = OnceCell::new();
 static ST_APP_ARGS: OnceCell<AppArgument> = OnceCell::new();
 
 pub fn app_args<'a>() -> &'a AppArgument {
-    ST_APP_ARGS.get_or_init(|| AppArgument::new())
+    ST_APP_ARGS.get_or_init(Default::default)
 }
 
 pub fn app_config<'a>() -> &'a AppConfig {

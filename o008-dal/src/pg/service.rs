@@ -21,7 +21,7 @@ impl<'q> DaoQuery<PgQueryContext<'q>, Postgres> for Service {
     async fn read(key: Value) -> Result<Box<Self>, DalError> {
         Self::query_ctx().await.fetch_one(
             sqlx::query_as::<_, Self>("SELECT id, name, original_name, application, default_repo FROM service WHERE id=$1")
-                .bind(sqlx::types::Uuid::parse_str(key["id"].as_str().unwrap()).unwrap())
+                .bind(Uuid::parse_str(key["id"].as_str().unwrap()).unwrap())
         ).await
     }
 }

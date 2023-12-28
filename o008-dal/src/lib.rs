@@ -32,7 +32,7 @@ pub trait DaoQuery<Q, DB>
     async fn query_ctx() -> Q {
         Q::new().await
     }
-    async fn read(key: serde_json::Value) -> Result<Box<Self>, error::DalError>;
+    async fn read(key: serde_json::Value) -> Result<Box<Self>, DalError>;
 }
 
 #[async_trait]
@@ -42,8 +42,8 @@ pub trait DaoCommand<C, DB>
     async fn command_ctx() -> C {
         C::new().await
     }
-    async fn create(&self) -> Result<(), error::DalError>;
-    async fn update(&self) -> Result<(), error::DalError>;
-    async fn delete(&self) -> Result<(), error::DalError>;
+    async fn create(&self) -> Result<(), DalError>;
+    async fn update(&self) -> Result<(), DalError>;
+    async fn delete(&self) -> Result<(), DalError>;
 }
 

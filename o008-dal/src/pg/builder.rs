@@ -20,7 +20,7 @@ impl<'q> DaoQuery<PgQueryContext<'q>, Postgres> for Builder {
         let qx = Self::query_ctx().await;
         qx.fetch_one(
             sqlx::query_as::<_, Self>("SELECT id, name, active, build_command FROM builder WHERE id=$1")
-                .bind(uuid::Uuid::parse_str(key["id"].as_str().unwrap()).unwrap())
+                .bind(Uuid::parse_str(key["id"].as_str().unwrap()).unwrap())
         ).await
     }
 
@@ -60,7 +60,7 @@ impl<'q> DaoCommand<PgCommandContext<'q>, Postgres> for Builder {
 }
 
 impl Builder {
-    pub fn new(id: uuid::Uuid, name: &str, active: bool, build_command: &str) -> Self {
+    pub fn new(id: Uuid, name: &str, active: bool, build_command: &str) -> Self {
         Self {
             id,
             name: String::from(name),

@@ -42,8 +42,8 @@ impl DispatchPublisher<((), Option<DispatcherError>)> for DispatchResult<()> {
 }
 
 #[async_trait]
-impl AsyncDispatcher<()> for InternalCommand {
-    async fn dispatch(&self) -> DispatchResult<()> {
+impl AsyncDispatcher<serde_json::Value> for InternalCommand {
+    async fn dispatch(&self) -> DispatchResult<serde_json::Value> {
         match self {
             InternalCommand::Quit => Err(DispatcherError::InternalCommand(Quit(None)))
         }
