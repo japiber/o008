@@ -16,23 +16,23 @@ const TERMINATE_WAIT_MILLIS : u64 = 256;
 pub struct CommandQueue {
     halt: Arc<AtomicBool>,
     handles_queue: Arc<Mutex<VecDeque<JoinHandle<()>>>>,
-    once: bool,
 }
 
 impl CommandQueue {
-    pub fn new(once: bool) -> Self {
-        Self {
-            halt: Arc::new(AtomicBool::new(false)),
-            handles_queue: Arc::new(Mutex::new(VecDeque::<JoinHandle<()>>::new())),
-            once,
-        }
-    }
-
-    pub async fn poll(&self) {
-        while !self.halt.load(Ordering::Relaxed) {
-            self.command_task().await;
-            self.queue_join().await;
-        }
+    pub async fn poll(poll_once: bool) {
+        let cq : Self = Default::default();
+        task::spawn(async move {
+            if poll_once {
+                CommandQueue::terminate(&cq.halt).await
+            }
+            loop {
+                cq.command_task().await;
+                cq.queue_join().await;
+                if cq.halt.load(Ordering::Relaxed) {
+                    break
+                }
+            }
+        }).await.expect("command queue poll panics");
     }
 
     async fn command_dispatch(cmd: Box<DispatchCommand>) -> DispatchResult<Value> {
@@ -45,7 +45,8 @@ impl CommandQueue {
     async fn command_task(&self) {
         let cmd = cmd_dispatch_channel().recv().await;
         let halt = self.halt.clone();
-        let h = task::spawn(async move {
+        let mut qlock = self.handles_queue.lock().await;
+        qlock.push_back(task::spawn(async move {
             let result = CommandQueue::command_dispatch(cmd).await;
             if let Err(DispatcherError::InternalCommand(i)) = result   {
                 match i {
@@ -55,12 +56,7 @@ impl CommandQueue {
                 result.publish();
             }
             tokio::time::sleep(Duration::from_millis(COMMAND_WAIT_MILLIS)).await
-        });
-        if self.once {
-            CommandQueue::terminate(&self.halt).await
-        }
-        let mut q = self.handles_queue.lock().await;
-        q.push_back(h);
+        }));
     }
 
     async fn queue_join(&self) {
@@ -78,5 +74,14 @@ impl CommandQueue {
     async fn terminate(halt: &AtomicBool) {
         tokio::time::sleep(Duration::from_millis(TERMINATE_WAIT_MILLIS)).await;
         halt.store(true, Ordering::Relaxed)
+    }
+}
+
+impl Default for CommandQueue {
+    fn default() -> Self {
+        Self {
+            halt: Arc::new(AtomicBool::new(false)),
+            handles_queue: Arc::new(Mutex::new(VecDeque::<JoinHandle<()>>::new())),
+        }
     }
 }

@@ -15,12 +15,9 @@ async fn main() {
 }
 
 async fn command_dispatcher() {
-    let dispatcher = CommandQueue::new(true);
-
     if let Some(cmd) = &app_args().command {
         cmd_dispatch_channel().send(Box::new(DispatchCommand::from(cmd.clone())));
-        //cmd_dispatch_channel().send(Box::new(DispatchCommand::from(Quit)))
     }
 
-    dispatcher.poll().await
+    CommandQueue::poll(true).await
 }
