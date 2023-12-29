@@ -11,7 +11,7 @@ pub enum AppCommandError {
 
 #[derive(Debug, Clone)]
 pub enum InternalCommandError {
-    Quit(Option<String>)
+    Terminate(Option<String>)
 }
 
 #[derive(Debug, Clone)]
@@ -36,7 +36,7 @@ impl std::error::Error for AppCommandError {}
 impl Display for InternalCommandError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            InternalCommandError::Quit(reason) => match reason {
+            InternalCommandError::Terminate(reason) => match reason {
                 None => write!(f, "application terminates"),
                 Some(s) => write!(f, "application terminates: {}", s)
             }

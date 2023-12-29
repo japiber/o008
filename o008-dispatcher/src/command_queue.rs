@@ -2,16 +2,20 @@ use std::collections::VecDeque;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
+
 use serde_json::Value;
 use tokio::sync::Mutex;
 use tokio::task;
 use tokio::task::JoinHandle;
+use tracing::info;
+
+use o008_common::InternalCommand::Quit;
+
 use crate::{AsyncDispatcher, cmd_dispatch_channel, DispatchCommand, DispatcherError, DispatchPublisher, DispatchResult, InternalCommandError};
 
+const COMMAND_WAIT_MILLIS: u64 = 64;
+const JOIN_WAIT_MILLIS: u64 = 24;
 
-const COMMAND_WAIT_MILLIS : u64 = 16;
-const JOIN_WAIT_MILLIS : u64 = 64;
-const TERMINATE_WAIT_MILLIS : u64 = 256;
 
 pub struct CommandQueue {
     halt: Arc<AtomicBool>,
@@ -20,19 +24,14 @@ pub struct CommandQueue {
 
 impl CommandQueue {
     pub async fn poll(poll_once: bool) {
-        let cq : Self = Default::default();
-        task::spawn(async move {
-            if poll_once {
-                CommandQueue::terminate(&cq.halt).await
-            }
-            loop {
-                cq.command_task().await;
-                cq.queue_join().await;
-                if cq.halt.load(Ordering::Relaxed) {
-                    break
-                }
-            }
-        }).await.expect("command queue poll panics");
+        let cq: Self = Default::default();
+        if poll_once {
+            cmd_dispatch_channel().send(Box::new(DispatchCommand::from(Quit)));
+        }
+        tokio::join!(
+            cq.command_task(),
+            cq.queue_join()
+        );
     }
 
     async fn command_dispatch(cmd: Box<DispatchCommand>) -> DispatchResult<Value> {
@@ -43,36 +42,48 @@ impl CommandQueue {
     }
 
     async fn command_task(&self) {
-        let cmd = cmd_dispatch_channel().recv().await;
-        let halt = self.halt.clone();
-        let mut qlock = self.handles_queue.lock().await;
-        qlock.push_back(task::spawn(async move {
-            let result = CommandQueue::command_dispatch(cmd).await;
-            if let Err(DispatcherError::InternalCommand(i)) = result   {
-                match i {
-                    InternalCommandError::Quit(_) => CommandQueue::terminate(halt.as_ref()).await
-                }
-            } else {
-                result.publish();
+        info!("start command_task");
+        let aqr = Arc::clone(&self.handles_queue);
+        let halt = Arc::clone(&self.halt);
+        task::spawn(async move {
+            while let Some(cmd) = cmd_dispatch_channel().recv().await {
+                let mut qlock = aqr.lock().await;
+                qlock.push_back(task::spawn(async move {
+                    let result = CommandQueue::command_dispatch(cmd).await;
+                    if let Err(DispatcherError::InternalCommand(i)) = result {
+                        match i {
+                            InternalCommandError::Terminate(_) => {
+                                cmd_dispatch_channel().terminate();
+                            }
+                        }
+                    } else {
+                        result.publish();
+                    }
+                }));
+                tokio::time::sleep(Duration::from_millis(COMMAND_WAIT_MILLIS)).await;
             }
-            tokio::time::sleep(Duration::from_millis(COMMAND_WAIT_MILLIS)).await
-        }));
+            Self::terminate(halt.as_ref()).await;
+        }).await.expect("command queue task panics!!");
     }
 
     async fn queue_join(&self) {
         let aqr = Arc::clone(&self.handles_queue);
-        let h = task::spawn(async move {
-            let mut qr = aqr.lock().await;
-            while let Some(handle) = qr.pop_front() {
-                handle.await.expect("command queue error");
-                tokio::time::sleep(Duration::from_millis(JOIN_WAIT_MILLIS)).await
+        let halt = Arc::clone(&self.halt);
+        task::spawn(async move {
+            loop {
+                tokio::time::sleep(Duration::from_millis(JOIN_WAIT_MILLIS)).await;
+                let mut qr = aqr.lock().await;
+                while let Some(handle) = qr.pop_front() {
+                    handle.await.expect("command handle panics!!");
+                }
+                if halt.load(Ordering::Relaxed) {
+                    break;
+                }
             }
-        });
-        h.await.expect("command queue error");
+        }).await.expect("command queue join panics!!!");
     }
 
     async fn terminate(halt: &AtomicBool) {
-        tokio::time::sleep(Duration::from_millis(TERMINATE_WAIT_MILLIS)).await;
         halt.store(true, Ordering::Relaxed)
     }
 }

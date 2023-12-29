@@ -3,7 +3,7 @@ use tracing::error;
 use o008_common::{AppCommand, InternalCommand};
 use crate::{action, AsyncDispatcher, DispatchPublisher, DispatchResult};
 use crate::error::DispatcherError;
-use crate::error::InternalCommandError::Quit;
+use crate::error::InternalCommandError::Terminate;
 
 
 #[async_trait]
@@ -45,7 +45,7 @@ impl DispatchPublisher<((), Option<DispatcherError>)> for DispatchResult<()> {
 impl AsyncDispatcher<serde_json::Value> for InternalCommand {
     async fn dispatch(&self) -> DispatchResult<serde_json::Value> {
         match self {
-            InternalCommand::Quit => Err(DispatcherError::InternalCommand(Quit(None)))
+            InternalCommand::Quit => Err(DispatcherError::InternalCommand(Terminate(None)))
         }
     }
 }
