@@ -7,11 +7,10 @@ use serde_json::Value;
 use tokio::sync::Mutex;
 use tokio::task;
 use tokio::task::JoinHandle;
-use tracing::info;
 
 use o008_common::InternalCommand::Quit;
 
-use crate::{AsyncDispatcher, cmd_dispatch_channel, DispatchCommand, DispatcherError, DispatchPublisher, DispatchResult, InternalCommandError};
+use crate::{AsyncDispatcher, cmd_dispatch_channel, DispatchCommand, DispatcherError, DispatchResult, InternalCommandError};
 
 const COMMAND_WAIT_MILLIS: u64 = 64;
 const JOIN_WAIT_MILLIS: u64 = 24;
@@ -19,18 +18,20 @@ const JOIN_WAIT_MILLIS: u64 = 24;
 
 pub struct CommandQueue {
     halt: Arc<AtomicBool>,
-    handles_queue: Arc<Mutex<VecDeque<JoinHandle<()>>>>,
+    handles_queue: Arc<Mutex<VecDeque<JoinHandle<Option<DispatchResult<Value>>>>>>,
 }
 
 impl CommandQueue {
-    pub async fn poll(poll_once: bool) {
+    pub async fn poll(poll_once: bool,
+                      on_ok: fn(&Value),
+                      on_error: fn(DispatcherError)) {
         let cq: Self = Default::default();
         if poll_once {
             cmd_dispatch_channel().send(Box::new(DispatchCommand::from(Quit)));
         }
         tokio::join!(
             cq.command_task(),
-            cq.queue_join()
+            cq.queue_join(on_ok, on_error)
         );
     }
 
@@ -42,7 +43,6 @@ impl CommandQueue {
     }
 
     async fn command_task(&self) {
-        info!("start command_task");
         let aqr = Arc::clone(&self.handles_queue);
         let halt = Arc::clone(&self.halt);
         task::spawn(async move {
@@ -50,15 +50,12 @@ impl CommandQueue {
                 let mut qlock = aqr.lock().await;
                 qlock.push_back(task::spawn(async move {
                     let result = CommandQueue::command_dispatch(cmd).await;
-                    if let Err(DispatcherError::InternalCommand(i)) = result {
-                        match i {
-                            InternalCommandError::Terminate(_) => {
-                                cmd_dispatch_channel().terminate();
-                            }
-                        }
+                    return if check_terminate(&result) {
+                        cmd_dispatch_channel().terminate();
+                        None
                     } else {
-                        result.publish();
-                    }
+                        Some(result)
+                    };
                 }));
                 tokio::time::sleep(Duration::from_millis(COMMAND_WAIT_MILLIS)).await;
             }
@@ -66,7 +63,9 @@ impl CommandQueue {
         }).await.expect("command queue task panics!!");
     }
 
-    async fn queue_join(&self) {
+    async fn queue_join(&self,
+                        on_ok: fn(&Value),
+                        on_error: fn(DispatcherError)) {
         let aqr = Arc::clone(&self.handles_queue);
         let halt = Arc::clone(&self.halt);
         task::spawn(async move {
@@ -74,7 +73,12 @@ impl CommandQueue {
                 tokio::time::sleep(Duration::from_millis(JOIN_WAIT_MILLIS)).await;
                 let mut qr = aqr.lock().await;
                 while let Some(handle) = qr.pop_front() {
-                    handle.await.expect("command handle panics!!");
+                    if let Some(result) = handle.await.expect("command handle panics!!") {
+                        match result {
+                            Ok(v) => on_ok(&v),
+                            Err(e) => on_error(e),
+                        };
+                    }
                 }
                 if halt.load(Ordering::Relaxed) {
                     break;
@@ -92,7 +96,18 @@ impl Default for CommandQueue {
     fn default() -> Self {
         Self {
             halt: Arc::new(AtomicBool::new(false)),
-            handles_queue: Arc::new(Mutex::new(VecDeque::<JoinHandle<()>>::new())),
+            handles_queue: Arc::new(Mutex::new(VecDeque::<JoinHandle<Option<DispatchResult<Value>>>>::new())),
         }
     }
+}
+
+fn check_terminate<T>(dr: &DispatchResult<T>) -> bool {
+    if let Err(DispatcherError::InternalCommand(i)) = dr {
+        return match i {
+            InternalCommandError::Terminate(_) => {
+                true
+            }
+        };
+    }
+    false
 }

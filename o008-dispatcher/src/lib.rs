@@ -29,7 +29,3 @@ pub type DispatchResult<T> = Result<T, DispatcherError>;
 pub trait AsyncDispatcher<T> {
     async fn dispatch(&self) -> DispatchResult<T>;
 }
-
-pub trait DispatchPublisher<S> {
-    fn publish(&self) -> S;
-}

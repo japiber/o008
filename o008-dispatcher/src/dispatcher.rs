@@ -1,7 +1,6 @@
 use async_trait::async_trait;
-use tracing::error;
 use o008_common::{AppCommand, InternalCommand};
-use crate::{action, AsyncDispatcher, DispatchPublisher, DispatchResult};
+use crate::{action, AsyncDispatcher, DispatchResult};
 use crate::error::DispatcherError;
 use crate::error::InternalCommandError::Terminate;
 
@@ -21,23 +20,6 @@ impl AsyncDispatcher<serde_json::Value> for AppCommand {
             AppCommand::CreateService { value } => action::service::create(value).await,
             AppCommand::GetService { value } => action::service::get(value).await,
         }
-    }
-}
-
-impl DispatchPublisher<((), Option<DispatcherError>)> for DispatchResult<serde_json::Value> {
-    #[tracing::instrument]
-    fn publish(&self) -> ((), Option<DispatcherError>) {
-        match self {
-            Ok(v) => (println!("{}", serde_json::to_string_pretty(&v).unwrap()), None),
-            Err(e) => (error!("{}", e.to_string()), None),
-        }
-    }
-}
-
-impl DispatchPublisher<((), Option<DispatcherError>)> for DispatchResult<()> {
-    #[tracing::instrument]
-    fn publish(&self) -> ((), Option<DispatcherError>) {
-        self.clone().map_or_else(|e| ((), Some(e.clone())), |v| (v, None))
     }
 }
 
