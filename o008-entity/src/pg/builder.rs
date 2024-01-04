@@ -78,6 +78,10 @@ impl QueryEntity<BuilderDao, PgPool, Postgres> for Builder {
             }
         }
     }
+
+    async fn persisted(qry: Value) -> bool {
+        BuilderDao::exists(qry).await
+    }
 }
 
 #[async_trait]

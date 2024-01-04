@@ -85,6 +85,10 @@ impl QueryEntity<ApplicationDao, PgPool, Postgres> for Application {
             }
         }
     }
+
+    async fn persisted(qry: Value) -> bool {
+        ApplicationDao::exists(qry).await
+    }
 }
 
 #[async_trait]

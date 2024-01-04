@@ -71,6 +71,10 @@ impl QueryEntity<TenantDao, PgPool, Postgres> for Tenant {
             }
         }
     }
+
+    async fn persisted(qry: Value) -> bool {
+        TenantDao::exists(qry).await
+    }
 }
 
 #[async_trait]

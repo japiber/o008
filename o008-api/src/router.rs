@@ -7,7 +7,7 @@ use o008_entity::{Application, Builder, Service, Tenant};
 
 #[derive(OpenApi)]
 #[openapi(
-    paths(handler::service_get),
+    paths(handler::get_service),
     components(
         schemas(Application),
         schemas(Builder),
@@ -19,6 +19,6 @@ struct ApiDocV1;
 
 pub fn router_o008_v1() -> Router {
     Router::new()
-        .route("/service/:service/app/:app/tenant/:tenant", get(handler::service_get))
+        .route("/service/:service/app/:app/tenant/:tenant", get(handler::get_service))
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDocV1::openapi()))
 }

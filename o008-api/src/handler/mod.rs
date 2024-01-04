@@ -4,8 +4,9 @@ use o008_dispatcher::{AppCommandError, DispatcherError, InternalCommandError};
 
 mod service;
 
-pub use service::service_get;
-pub use service::__path_service_get;
+pub use service::get_service;
+pub use service::__path_get_service;
+
 
 fn dispatch_error_into_response(e: DispatcherError) -> Response {
     match e {

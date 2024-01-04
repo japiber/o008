@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sqlx::Postgres;
 use uuid::Uuid;
-use crate::{QueryContext, error, CommandContext, DaoQuery, DaoCommand};
+use crate::{QueryContext, error, CommandContext, DaoQuery, DaoCommand, DalCount};
 use crate::pg::{hard_check_key, PgPool, soft_check_key};
 
 
@@ -19,7 +19,7 @@ pub struct Builder {
 #[async_trait]
 impl DaoQuery<PgPool, Postgres> for Builder {
     async fn read(key: Value) -> Result<Box<Self>, error::DalError> {
-        let id_key= soft_check_key(&key, &["id"])?;
+        let id_key = soft_check_key(&key, &["id"])?;
         return if let Some(id) = id_key.first().unwrap() {
             Self::query_ctx().await.fetch_one(
                 sqlx::query_as::<_, Self>("SELECT id, name, active, build_command FROM builder WHERE id=$1")
@@ -33,6 +33,27 @@ impl DaoQuery<PgPool, Postgres> for Builder {
                     .bind(name)
             ).await
         }
+    }
+
+    async fn exists(key: Value) -> bool {
+        if let Ok(id_key) = soft_check_key(&key, &["id"]) {
+            if let Some(id) = id_key.first().unwrap() {
+                let r = Self::query_ctx().await.fetch_one(
+                    sqlx::query_as::<_, DalCount>("SELECT COUNT(*) as count FROM builder WHERE id=$1")
+                        .bind(Uuid::parse_str(id.as_str().unwrap()).unwrap())
+                ).await;
+                return r.unwrap().count > 0
+            } else if let Ok(name_key) = soft_check_key(&key, &["name"]) {
+                if let Some(name) = name_key.first().unwrap() {
+                    let r = Self::query_ctx().await.fetch_one(
+                        sqlx::query_as::<_, DalCount>("SELECT COUNT(*) as count FROM builder WHERE name=$1")
+                            .bind(name.as_str().unwrap())
+                    ).await;
+                    return r.unwrap().count > 0
+                }
+            }
+        }
+        false
     }
 }
 

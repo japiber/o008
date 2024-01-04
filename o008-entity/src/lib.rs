@@ -26,6 +26,8 @@ pub trait QueryEntity<T, Q, DB>: Entity<T>
           Q: QueryContext<DB>,
           DB: Database {
     async fn read(qry: Value) -> Result<Box<Self>, EntityError>;
+
+    async fn persisted(qry: Value) -> bool;
 }
 
 #[async_trait]

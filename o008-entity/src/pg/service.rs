@@ -78,13 +78,17 @@ impl Entity<ServiceDao> for Service {
 #[async_trait]
 impl QueryEntity<ServiceDao, PgPool, Postgres> for Service {
     async fn read(qry: Value) -> Result<Box<Self>, EntityError> {
-      match ServiceDao::read(qry).await {
+        match ServiceDao::read(qry).await {
           Ok(app) => Ok(Box::new(AsyncFrom::<ServiceDao>::from(*app).await)),
           Err(e) => match e {
               DalError::InvalidKey(_) => Err(EntityError::WrongQuery(e.to_string())),
               _ => Err(EntityError::NotFound(e.to_string())),
           }
-      }
+        }
+    }
+
+    async fn persisted(qry: Value) -> bool {
+        ServiceDao::exists(qry).await
     }
 }
 

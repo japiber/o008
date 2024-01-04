@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use serde::{Deserialize, Serialize};
 use sqlx::{Database, FromRow, Pool};
 use sqlx::database::HasArguments;
 use sqlx::query::{Query, QueryAs};
@@ -6,6 +7,9 @@ mod error;
 pub mod pg;
 
 pub use error::DalError;
+
+#[derive(Debug, PartialEq, Serialize, Deserialize, sqlx::FromRow)]
+pub struct DalCount { pub count: i64 }
 
 #[async_trait]
 pub trait DBPool<DB> where DB: Database {
@@ -36,6 +40,7 @@ pub trait DaoQuery<Q, DB>
         Q::new().await
     }
     async fn read(key: serde_json::Value) -> Result<Box<Self>, DalError>;
+    async fn exists(key: serde_json::Value) -> bool;
 }
 
 #[async_trait]

@@ -24,7 +24,7 @@ use crate::handler::dispatch_error_into_response;
         ("tenant" = String, Path, description = "Service tenant name"),
     )
 )]
-pub async fn service_get(Path((name, application, tenant)): Path<(String, String, String)>) -> impl IntoResponse {
+pub async fn get_service(Path((name, application, tenant)): Path<(String, String, String)>) -> impl IntoResponse {
 
     let req = ServiceRequest::get_request(name, application, tenant);
     let msg = send_message(&AppCommand::GetService { value: req });
