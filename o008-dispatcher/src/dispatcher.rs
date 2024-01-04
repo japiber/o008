@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use o008_common::{AppCommand, InternalCommand};
-use crate::{action, AsyncDispatcher, DispatchResult};
+use crate::{action, AsyncDispatcher, DispatchCommand, DispatchMessage, DispatchResult};
 use crate::error::DispatcherError;
 use crate::error::InternalCommandError::Terminate;
 
@@ -20,6 +20,13 @@ impl AsyncDispatcher<serde_json::Value> for AppCommand {
             AppCommand::CreateService { value } => action::service::create(value).await,
             AppCommand::GetService { value } => action::service::get(value).await,
         }
+    }
+}
+
+pub async fn dispatch(cmd: Box<DispatchMessage>) -> DispatchResult<serde_json::Value> {
+    match (*cmd).request() {
+        DispatchCommand::App(app) => app.dispatch().await,
+        DispatchCommand::Internal(i) => i.dispatch().await,
     }
 }
 

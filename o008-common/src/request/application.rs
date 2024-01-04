@@ -12,6 +12,15 @@ pub struct Application {
 }
 
 impl Application {
+    pub fn new(n: Option<String>, t: Option<TenantRequest>, cu: Option<String>, fg: Option<String>) -> Self {
+        Self {
+            name: n,
+            tenant: t,
+            class_unit: cu,
+            functional_group: fg,
+        }
+    }
+
     pub fn name(&self) -> &str {
         self.name.as_ref().unwrap().as_str()
     }

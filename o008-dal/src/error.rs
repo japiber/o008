@@ -5,10 +5,11 @@ use std::error::Error as StdError;
 #[derive(Debug)]
 pub enum DalError {
     DataCreation(sqlx::Error),
-    DataNotFound(sqlx::Error),
+    DataNotFound(String),
     DataUpdate(sqlx::Error),
     DataDelete(sqlx::Error),
     DataGenericError(sqlx::Error),
+    InvalidKey(String),
 }
 
 impl Display for DalError {
@@ -19,6 +20,7 @@ impl Display for DalError {
             DalError::DataUpdate(e) => write!(f, "could not update: {}", e),
             DalError::DataDelete(e) => write!(f, "could not delete: {}", e),
             DalError::DataGenericError(e) => write!(f, "generic error: {}", e),
+            DalError::InvalidKey(e) => write!(f, "specified key is not valid: {}", e),
         }
     }
 }

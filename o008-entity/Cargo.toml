@@ -20,3 +20,4 @@ async-trait = { version = "0.1", features = [] }
 o008-dal = { path = "../o008-dal" }
 o008-common = {  path = "../o008-common"  }
 tracing = "0.1.40"
+utoipa = { features = ["uuid", "chrono"], version = "4.1" }

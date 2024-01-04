@@ -15,4 +15,9 @@ pub use request::RequestValidator;
 
 pub type BoxDynError = Box<dyn StdError + Send + Sync + 'static>;
 
+#[async_trait::async_trait]
+pub trait AsyncFrom<T>  where T: Send + Unpin + Sized {
+    async fn from(value: T) -> Self;
+}
+
 

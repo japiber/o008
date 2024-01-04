@@ -1,19 +1,19 @@
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
-use serde_json::json;
+use serde_json::{json, Value};
 use sqlx::Postgres;
-use tracing::info;
 use uuid::Uuid;
-use o008_dal::{DaoCommand, DaoQuery};
-use o008_dal::pg::{PgCommandContext, PgQueryContext};
-use crate::{AsyncFrom, Entity, EntityError};
+use o008_dal::{DalError, DaoCommand, DaoQuery};
+use crate::{DestroyEntity, Entity, EntityError, PersistEntity, QueryEntity};
 use crate::pg::Application;
 use crate::pg::application::ApplicationDao;
-use crate::pg::tenant::TenantDao;
+use utoipa::ToSchema;
+use o008_common::{AsyncFrom, ServiceRequest};
+use o008_dal::pg::{PgPool};
 
 type ServiceDao = o008_dal::pg::Service;
 
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Serialize, Deserialize, ToSchema)]
 pub struct Service {
     #[serde(rename(serialize = "_id", deserialize = "id"))]
     id: Uuid,
@@ -29,6 +29,16 @@ impl Service {
             id: Uuid::nil(),
             name: String::from(name).to_lowercase(),
             original_name: String::from(name),
+            application: app,
+            default_repo: String::from(repo),
+        }
+    }
+
+    pub fn load(id: Uuid, name: &str, original_name: &str, app: Application, repo: &str) -> Self {
+        Self {
+            id,
+            name: String::from(name),
+            original_name: String::from(original_name),
             application: app,
             default_repo: String::from(repo),
         }
@@ -53,33 +63,37 @@ impl Service {
     pub fn default_repo(&self) -> &str {
         &self.default_repo
     }
+}
 
-    pub async fn get_by_name_and_application(name: &str, app_name: &str, tenant_name: &str) -> Option<Self> {
-        if let Ok(tenant_dao) = TenantDao::search_name(tenant_name).await {
-            if let Ok(app_dao) = ApplicationDao::search_name_tenant(app_name, tenant_dao.id()).await {
-                if let Ok(srv_dao) = ServiceDao::search_name_application(name, app_dao.id()).await {
-                    Some(AsyncFrom::<ServiceDao, PgQueryContext, PgCommandContext, Postgres>::from(*srv_dao).await)
-                } else {
-                    info!("service {} not found", name);
-                    None
-                }
-            } else {
-                info!("application {} not found", app_name);
-                None
-            }
+impl Entity<ServiceDao> for Service {
+    fn dao(&self) -> Box<ServiceDao> {
+        if self.id.is_nil() {
+            Box::new(ServiceDao::new(Uuid::new_v4(), &self.name, &self.original_name, self.application.id(), &self.default_repo))
         } else {
-            info!("tenant {} not found", tenant_name);
-            None
+            Box::new(ServiceDao::new(self.id, &self.name, &self.original_name, self.application.id(), &self.default_repo))
         }
     }
 }
 
 #[async_trait]
-impl<'q> Entity<ServiceDao, PgQueryContext<'q>, PgCommandContext<'q>, Postgres> for Service {
+impl QueryEntity<ServiceDao, PgPool, Postgres> for Service {
+    async fn read(qry: Value) -> Result<Box<Self>, EntityError> {
+      match ServiceDao::read(qry).await {
+          Ok(app) => Ok(Box::new(AsyncFrom::<ServiceDao>::from(*app).await)),
+          Err(e) => match e {
+              DalError::InvalidKey(_) => Err(EntityError::WrongQuery(e.to_string())),
+              _ => Err(EntityError::NotFound(e.to_string())),
+          }
+      }
+    }
+}
+
+#[async_trait]
+impl PersistEntity<ServiceDao, PgPool, Postgres> for Service {
     async fn persist(&self) -> Result<Box<Self>, EntityError> {
         let dao = self.dao();
-        let r= if self.id.is_nil() {
-            dao.create().await
+        let r = if self.id.is_nil() {
+            dao.insert().await
         } else {
             dao.update().await
         };
@@ -96,10 +110,13 @@ impl<'q> Entity<ServiceDao, PgQueryContext<'q>, PgCommandContext<'q>, Postgres> 
             Err(e) => Err(EntityError::Persist(e))
         }
     }
+}
 
+#[async_trait]
+impl DestroyEntity<ServiceDao, PgPool, Postgres> for Service {
     async fn destroy(&self) -> Result<(), EntityError> {
         if self.id.is_nil() {
-            Err(EntityError::UnPersisted(String::from("cannot destroy not previously persisted service")))
+            Err(EntityError::UnPersisted(String::from("service")))
         } else {
             match self.dao().delete().await {
                 Ok(_) => Ok(()),
@@ -107,26 +124,20 @@ impl<'q> Entity<ServiceDao, PgQueryContext<'q>, PgCommandContext<'q>, Postgres> 
             }
         }
     }
+}
 
-    fn dao(&self) -> Box<ServiceDao> {
-        if self.id.is_nil() {
-            Box::new(ServiceDao::new(Uuid::new_v4(), &self.name, &self.original_name, self.application.id(), &self.default_repo))
-        } else {
-            Box::new(ServiceDao::new(self.id, &self.name, &self.original_name, self.application.id(), &self.default_repo))
-        }
+#[async_trait::async_trait]
+impl AsyncFrom<ServiceDao> for Service {
+    async fn from(value: ServiceDao) -> Self {
+        let app = ApplicationDao::read(json!({"id": value.application().to_string()})).await.unwrap();
+        Self::load(value.id(), value.name(), value.original_name(), AsyncFrom::<ApplicationDao>::from(*app).await, value.default_repo())
     }
 }
 
 #[async_trait::async_trait]
-impl<'q> AsyncFrom<ServiceDao, PgQueryContext<'q>, PgCommandContext<'q>, Postgres> for Service {
-    async fn from(value: ServiceDao) -> Self {
-        let td = ApplicationDao::read(json!({"id": value.application().to_string()})).await.unwrap();
-        Self {
-            id: value.id(),
-            name: String::from(value.name()),
-            original_name: String::from(value.original_name()),
-            application: AsyncFrom::<ApplicationDao, PgQueryContext, PgCommandContext, Postgres>::from(*td).await,
-            default_repo: String::from(value.default_repo()),
-        }
+impl AsyncFrom<ServiceRequest> for Service {
+    async fn from(value: ServiceRequest) -> Self {
+        let srv = ServiceDao::read(serde_json::to_value(value).unwrap()).await.unwrap();
+        AsyncFrom::<ServiceDao>::from(*srv).await
     }
 }

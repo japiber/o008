@@ -1,102 +1,120 @@
-use std::collections::VecDeque;
+use std::collections::{HashMap, VecDeque};
 use std::sync::Arc;
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
-
+use async_trait::async_trait;
+use uuid::Uuid;
 use serde_json::Value;
 use tokio::sync::Mutex;
 use tokio::task;
 use tokio::task::JoinHandle;
 
-use o008_common::InternalCommand::Quit;
-
-use crate::{AsyncDispatcher, cmd_dispatch_channel, DispatchCommand, DispatcherError, DispatchResult, InternalCommandError};
+use crate::{cmd_dispatch_channel, DispatcherError, DispatchMessage, DispatchResult, InternalCommandError};
+use crate::dispatcher::dispatch;
 
 const COMMAND_WAIT_MILLIS: u64 = 64;
 const JOIN_WAIT_MILLIS: u64 = 24;
 
 
-pub struct CommandQueue {
-    halt: Arc<AtomicBool>,
-    handles_queue: Arc<Mutex<VecDeque<JoinHandle<Option<DispatchResult<Value>>>>>>,
+type ResultItem<T> = JoinHandle<(DispatchMessage, Option<DispatchResult<T>>)>;
+
+#[async_trait]
+pub trait MessagePoll<T> {
+    async fn poll(&self, msg_id: Uuid) -> DispatchResult<Value>;
 }
 
-impl CommandQueue {
-    pub async fn poll(poll_once: bool,
-                      on_ok: fn(&Value),
-                      on_error: fn(DispatcherError)) {
-        let cq: Self = Default::default();
-        if poll_once {
-            cmd_dispatch_channel().send(Box::new(DispatchCommand::from(Quit)));
+#[derive(Debug, Clone)]
+struct InnerMessageQueue {
+    queue: Arc<Mutex<VecDeque<ResultItem<Value>>>>,
+    response: Arc<Mutex<HashMap<Uuid, DispatchResult<Value>>>>,
+}
+
+pub struct MessageQueue {
+    inner: Arc<InnerMessageQueue>,
+}
+
+#[async_trait]
+impl MessagePoll<Value> for MessageQueue {
+    async fn poll(&self, msg_id: Uuid) -> DispatchResult<Value> {
+        let inner = Arc::clone(&self.inner);
+        task::spawn(async move {
+            while !inner.check_result(msg_id).await {
+                inner.command_task().await;
+                inner.handle_result().await;
+            }
+            inner.extract_result(msg_id).await.unwrap()
+        }).await.expect("message queue poll panics")
+    }
+}
+
+impl MessageQueue {
+    pub fn new() -> Self {
+        Self {
+            inner: Arc::new(Default::default())
         }
-        tokio::join!(
-            cq.command_task(),
-            cq.queue_join(on_ok, on_error)
-        );
+    }
+}
+
+impl InnerMessageQueue {
+    async fn check_result(&self, msg_id: Uuid) -> bool {
+        let arr = Arc::clone(&self.response);
+        let lar = arr.lock().await;
+        lar.contains_key(&msg_id)
     }
 
-    async fn command_dispatch(cmd: Box<DispatchCommand>) -> DispatchResult<Value> {
-        match *cmd {
-            DispatchCommand::App(app) => app.dispatch().await,
-            DispatchCommand::Internal(i) => i.dispatch().await,
-        }
+    async fn extract_result(&self, msg_id: Uuid) -> Option<DispatchResult<Value>> {
+        let arr = Arc::clone(&self.response);
+        let mut lar = arr.lock().await;
+        lar.remove(&msg_id)
     }
 
     async fn command_task(&self) {
-        let aqr = Arc::clone(&self.handles_queue);
-        let halt = Arc::clone(&self.halt);
+        let queue = Arc::clone(&self.queue);
         task::spawn(async move {
-            while let Some(cmd) = cmd_dispatch_channel().recv().await {
-                let mut qlock = aqr.lock().await;
+            if let Some(msg) = cmd_dispatch_channel().recv().await {
+                let mut qlock = queue.lock().await;
                 qlock.push_back(task::spawn(async move {
-                    let result = CommandQueue::command_dispatch(cmd).await;
+                    let result : DispatchResult<Value> = dispatch(Box::new(msg.clone())).await;
                     return if check_terminate(&result) {
                         cmd_dispatch_channel().terminate();
-                        None
+                        (msg, None)
                     } else {
-                        Some(result)
+                        (msg, Some(result))
                     };
                 }));
                 tokio::time::sleep(Duration::from_millis(COMMAND_WAIT_MILLIS)).await;
             }
-            Self::terminate(halt.as_ref()).await;
-        }).await.expect("command queue task panics!!");
+        }).await.expect("message queue command task panics!!")
     }
 
-    async fn queue_join(&self,
-                        on_ok: fn(&Value),
-                        on_error: fn(DispatcherError)) {
-        let aqr = Arc::clone(&self.handles_queue);
-        let halt = Arc::clone(&self.halt);
+    async fn handle_result(&self) {
+        let queue = Arc::clone(&self.queue);
+        let response = Arc::clone(&self.response);
         task::spawn(async move {
-            loop {
-                tokio::time::sleep(Duration::from_millis(JOIN_WAIT_MILLIS)).await;
-                let mut qr = aqr.lock().await;
-                while let Some(handle) = qr.pop_front() {
-                    if let Some(result) = handle.await.expect("command handle panics!!") {
-                        match result {
-                            Ok(v) => on_ok(&v),
-                            Err(e) => on_error(e),
-                        };
-                    }
-                }
-                if halt.load(Ordering::Relaxed) {
-                    break;
+            tokio::time::sleep(Duration::from_millis(JOIN_WAIT_MILLIS)).await;
+            let mut qlock = queue.lock().await;
+            while let Some(handle) = qlock.pop_front() {
+                if let (msg, Some(result)) = handle.await.expect("command handle panics!!") {
+                    let mut rlock = response.lock().await;
+                    rlock.insert(msg.id(), result);
                 }
             }
-        }).await.expect("command queue join panics!!!");
-    }
-
-    async fn terminate(halt: &AtomicBool) {
-        halt.store(true, Ordering::Relaxed)
+        }).await.expect("message queue handle_result panics!!");
     }
 }
 
-impl Default for CommandQueue {
+impl Default for MessageQueue {
     fn default() -> Self {
         Self {
-            halt: Arc::new(AtomicBool::new(false)),
-            handles_queue: Arc::new(Mutex::new(VecDeque::<JoinHandle<Option<DispatchResult<Value>>>>::new())),
+            inner: Arc::new(Default::default())
+        }
+    }
+}
+
+impl Default for InnerMessageQueue {
+    fn default() -> Self {
+        Self {
+            queue: Arc::new(Mutex::new(VecDeque::<ResultItem<Value>>::new())),
+            response: Arc::new(Mutex::new(HashMap::<Uuid, DispatchResult<Value>>::new()))
         }
     }
 }

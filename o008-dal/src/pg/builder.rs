@@ -1,9 +1,11 @@
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use sqlx::Postgres;
 use uuid::Uuid;
 use crate::{QueryContext, error, CommandContext, DaoQuery, DaoCommand};
-use crate::pg::{PgCommandContext, PgQueryContext};
+use crate::pg::{hard_check_key, PgPool, soft_check_key};
+
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, sqlx::FromRow)]
 pub struct Builder {
@@ -15,20 +17,28 @@ pub struct Builder {
 
 
 #[async_trait]
-impl<'q> DaoQuery<PgQueryContext<'q>, Postgres> for Builder {
-    async fn read(key: serde_json::Value) -> Result<Box<Self>, error::DalError> {
-        let qx = Self::query_ctx().await;
-        qx.fetch_one(
-            sqlx::query_as::<_, Self>("SELECT id, name, active, build_command FROM builder WHERE id=$1")
-                .bind(Uuid::parse_str(key["id"].as_str().unwrap()).unwrap())
-        ).await
+impl DaoQuery<PgPool, Postgres> for Builder {
+    async fn read(key: Value) -> Result<Box<Self>, error::DalError> {
+        let id_key= soft_check_key(&key, &["id"])?;
+        return if let Some(id) = id_key.first().unwrap() {
+            Self::query_ctx().await.fetch_one(
+                sqlx::query_as::<_, Self>("SELECT id, name, active, build_command FROM builder WHERE id=$1")
+                    .bind(Uuid::parse_str(id.as_str().unwrap()).unwrap())
+            ).await
+        } else {
+            let name_key = hard_check_key(&key, &["name"])?;
+            let name = name_key.first().unwrap().as_str().unwrap();
+            Self::query_ctx().await.fetch_one(
+                sqlx::query_as::<_, Self>("SELECT  id, name, active, build_command FROM builder WHERE name=$1")
+                    .bind(name)
+            ).await
+        }
     }
-
 }
 
 #[async_trait]
-impl<'q> DaoCommand<PgCommandContext<'q>, Postgres> for Builder {
-    async fn create(&self) -> Result<(), error::DalError> {
+impl DaoCommand<PgPool, Postgres> for Builder {
+    async fn insert(&self) -> Result<(), error::DalError> {
         let cx = Self::command_ctx().await;
         cx.execute(
             sqlx::query("INSERT INTO builder (id, name, active, build_command) VALUES ($1, $2, $3, $4)")
@@ -85,11 +95,4 @@ impl Builder {
         &self.build_command
     }
 
-    pub async fn search_name(name: &str) -> Result<Box<Self>, error::DalError> {
-        let qx = Self::query_ctx().await;
-        qx.fetch_one(
-            sqlx::query_as::<_, Self>("SELECT  id, name, active, build_command FROM builder WHERE name=$1")
-            .bind(name)
-        ).await
-    }
 }

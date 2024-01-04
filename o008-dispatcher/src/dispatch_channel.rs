@@ -1,17 +1,18 @@
 use tokio::sync::Notify;
-
 use std::collections::VecDeque;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
+use crate::message::DispatchMessage;
 
-pub struct DispatchChannel<T> {
-    messages: Mutex<VecDeque<T>>,
+
+pub struct DispatchChannel {
+    messages: Mutex<VecDeque<DispatchMessage>>,
     notify_on_sent: Notify,
     terminate: AtomicBool
 }
 
-impl<T> DispatchChannel<T> {
-    pub fn send(&self, msg: T) {
+impl DispatchChannel {
+    pub fn send(&self, msg: DispatchMessage) {
         let mut locked_queue = self.messages.lock().unwrap();
         locked_queue.push_back(msg);
         drop(locked_queue);
@@ -25,19 +26,16 @@ impl<T> DispatchChannel<T> {
         self.terminate.store(true, Ordering::Relaxed)
     }
 
-    fn try_recv(&self) -> Option<T> {
+    fn try_recv(&self) -> Option<DispatchMessage> {
         let mut locked_queue = self.messages.lock().unwrap();
         locked_queue.pop_front()
     }
 
-    pub async fn recv(&self) -> Option<T> {
+    pub async fn recv(&self) -> Option<DispatchMessage> {
         let future = self.notify_on_sent.notified();
         tokio::pin!(future);
 
-        loop {
-            if self.terminate.load(Ordering::Relaxed) {
-                return None
-            }
+        while !self.terminate.load(Ordering::Relaxed) {
             // Make sure that no wakeup is lost if we get
             // `None` from `try_recv`.
             future.as_mut().enable();
@@ -57,10 +55,12 @@ impl<T> DispatchChannel<T> {
             // `try_recv` got the message before us.
             future.set(self.notify_on_sent.notified());
         }
+
+        return None
     }
 }
 
-impl<T> Default for DispatchChannel<T> {
+impl Default for DispatchChannel {
     fn default() -> Self {
         Self {
             messages: Mutex::new(VecDeque::new()),

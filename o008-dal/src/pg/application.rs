@@ -4,7 +4,8 @@ use serde_json::Value;
 use sqlx::Postgres;
 use uuid::Uuid;
 use crate::{CommandContext, DalError, DaoCommand, DaoQuery, QueryContext};
-use crate::pg::{PgCommandContext, PgQueryContext};
+use crate::pg::{hard_check_key, PgPool, soft_check_key, Tenant};
+
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, sqlx::FromRow)]
 pub struct Application {
@@ -16,18 +17,34 @@ pub struct Application {
 }
 
 #[async_trait]
-impl<'q> DaoQuery<PgQueryContext<'q>, Postgres> for Application {
+impl DaoQuery<PgPool, Postgres> for Application {
     async fn read(key: Value) -> Result<Box<Self>, DalError> {
-        Self::query_ctx().await.fetch_one(
-            sqlx::query_as::<_, Self>("SELECT id, name, tenant, class_unit, functional_group FROM application WHERE id=$1")
-                .bind(Uuid::parse_str(key["id"].as_str().unwrap()).unwrap())
-        ).await
+        let id_key= soft_check_key(&key, &["id"])?;
+        return if let Some(id) = id_key.first().unwrap() {
+            Self::query_ctx().await.fetch_one(
+                sqlx::query_as::<_, Self>("SELECT id, name, tenant, class_unit, functional_group FROM application WHERE id=$1")
+                    .bind(Uuid::parse_str(id.as_str().unwrap()).unwrap())
+            ).await
+        } else {
+            let name_tenant_key = hard_check_key(&key, &["name", "tenant"])?;
+            let name = name_tenant_key.get(0).unwrap().as_str().unwrap();
+            let tenant_qry = name_tenant_key.get(1).unwrap();
+            if let Ok(tenant) = Tenant::read(tenant_qry.clone()).await {
+                Self::query_ctx().await.fetch_one(
+                    sqlx::query_as::<_, Self>("SELECT id, name, tenant, class_unit, functional_group FROM application WHERE name=$1 AND tenant=$2")
+                        .bind(name)
+                        .bind(tenant.id())
+                ).await
+            } else {
+                Err(DalError::DataNotFound(format!("tenant {}", tenant_qry)))
+            }
+        }
     }
 }
 
 #[async_trait]
-impl<'q> DaoCommand<PgCommandContext<'q>, Postgres> for Application {
-    async fn create(&self) -> Result<(), DalError> {
+impl DaoCommand<PgPool, Postgres> for Application {
+    async fn insert(&self) -> Result<(), DalError> {
         let cx = Self::command_ctx().await;
         cx.execute(
             sqlx::query("INSERT INTO application(id, name, tenant, class_unit, functional_group) VALUES ($1, $2, $3, $4, $5)")
@@ -89,14 +106,5 @@ impl Application {
     
     pub fn functional_group(&self) -> &str {
         &self.functional_group
-    }
-
-    pub async fn search_name_tenant(name: &str, tenant: Uuid) -> Result<Box<Self>, DalError> {
-        let qx = Self::query_ctx().await;
-        qx.fetch_one(
-            sqlx::query_as::<_, Self>("SELECT id, name, tenant, class_unit, functional_group FROM application WHERE name=$1 AND tenant=$2")
-                .bind(name)
-                .bind(tenant)
-        ).await
     }
 }

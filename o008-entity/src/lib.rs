@@ -4,6 +4,7 @@ mod error;
 use std::ops::Deref;
 use async_trait::async_trait;
 use serde::Serialize;
+use serde_json::Value;
 use sqlx::{Database};
 use o008_dal::{CommandContext, DaoCommand, DaoQuery, QueryContext};
 
@@ -14,42 +15,40 @@ pub use pg::Service;
 pub use pg::Tenant;
 
 
-pub trait QueryEntity<T, Q, DB>
-    where T: DaoQuery<Q, DB>  + Send + Sized,
-          Q: QueryContext<DB>,
-          DB: Database {
-
+pub trait Entity<T>
+    where T: Send + Unpin + Sized {
     fn dao(&self) -> Box<T>;
 }
 
+#[async_trait]
+pub trait QueryEntity<T, Q, DB>: Entity<T>
+    where T: DaoQuery<Q, DB> + Send + Unpin + Sized,
+          Q: QueryContext<DB>,
+          DB: Database {
+    async fn read(qry: Value) -> Result<Box<Self>, EntityError>;
+}
 
 #[async_trait]
-pub trait Entity<T, Q, C, DB>
-    where T: DaoQuery<Q, DB> + DaoCommand<C, DB> + Send + Sized,
-          Q: QueryContext<DB>,
+pub trait PersistEntity<T, C, DB>: Entity<T>
+    where T: DaoCommand<C, DB> + Send + Unpin + Sized,
           C: CommandContext<DB>,
           DB: Database {
 
     async fn persist(&self) -> Result<Box<Self>, EntityError>;
-
-    async fn destroy(&self) -> Result<(), EntityError>;
-
-    fn dao(&self) -> Box<T>;
 }
 
-#[async_trait::async_trait]
-pub trait AsyncFrom<T, Q, C, DB>: Entity<T, Q, C, DB>
-    where T: DaoQuery<Q, DB> + DaoCommand<C, DB> + Send + Sized,
-          Q: QueryContext<DB>,
+#[async_trait]
+pub trait DestroyEntity<T, C, DB>: Entity<T>
+    where T: DaoCommand<C, DB> + Send + Unpin + Sized,
           C: CommandContext<DB>,
           DB: Database {
-    async fn from(value: T) -> Self;
+
+    async fn destroy(&self) -> Result<(), EntityError>;
 }
 
-pub async fn persist_json<E, T, Q, C, DB>(entity: Box<E>) -> Result<serde_json::Value, EntityError>
-    where E: Entity<T, Q, C, DB> + Serialize,
-          T: DaoQuery<Q, DB> + DaoCommand<C, DB> + Send + Sized,
-          Q: QueryContext<DB>,
+pub async fn persist_json<E, T, C, DB>(entity: Box<E>) -> Result<Value, EntityError>
+    where E: PersistEntity<T, C, DB> + Serialize,
+          T: DaoCommand<C, DB> + Send + Unpin + Sized,
           C: CommandContext<DB>,
           DB: Database {
     let r = entity.persist().await;

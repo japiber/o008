@@ -1,7 +1,7 @@
 use std::str::FromStr;
 use serde::{Deserialize, Serialize};
 use crate::request::application::Application;
-use crate::RequestValidator;
+use crate::{ApplicationRequest, RequestValidator, TenantRequest};
 
 #[serde_with::skip_serializing_none]
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
@@ -12,6 +12,27 @@ pub struct Service {
 }
 
 impl Service {
+    pub fn new(n: Option<String>, app: Option<Application>, repo: Option<String>) -> Self {
+        Self {
+            name: n,
+            application: app,
+            default_repo: repo,
+        }
+    }
+
+    pub fn get_request(name: String, application: String, tenant: String) -> Self {
+        Self::new(
+            Some(name),
+                Some(ApplicationRequest::new(
+                        Some(application),
+                        Some(TenantRequest::new(Some(tenant), None)),
+                        None,
+                        None
+                )
+            ),
+            None,
+        )
+    }
 
     pub fn name(&self) -> &str {
         self.name.as_ref().unwrap().as_str()

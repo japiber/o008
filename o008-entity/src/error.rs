@@ -6,6 +6,8 @@ pub enum EntityError {
     Persist(DalError),
     Destroy(DalError),
     UnPersisted(String),
+    WrongQuery(String),
+    NotFound(String),
 }
 
 impl Display for EntityError {
@@ -13,7 +15,9 @@ impl Display for EntityError {
         match self {
             EntityError::Persist(e) => write!(f, "could not persist entity: {}", e),
             EntityError::Destroy(e) => write!(f, "could not destroy entity: {}", e),
-            EntityError::UnPersisted(s) => write!(f, "{}", s),
+            EntityError::UnPersisted(s) => write!(f, "entity {} has not been persisted", s),
+            EntityError::WrongQuery(s) => write!(f, "query is not correct: {}", s),
+            EntityError::NotFound(s) => write!(f, "nothing has been found for query: {}", s)
         }
     }
 }

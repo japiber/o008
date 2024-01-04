@@ -10,6 +10,13 @@ pub struct Tenant {
 }
 
 impl Tenant {
+    pub fn new(name: Option<String>, coexisting: Option<bool>) -> Self {
+        Self {
+            name,
+            coexisting,
+        }
+    }
+
     pub fn name(&self) -> &str {
         self.name.as_ref().unwrap().as_str()
     }
