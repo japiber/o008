@@ -1,6 +1,6 @@
 use std::str::FromStr;
 use serde::{Deserialize, Serialize};
-use crate::request::RequestValidator;
+use crate::request::{RequestValidator, RequestValidatorError, RequestValidatorResult};
 
 #[serde_with::skip_serializing_none]
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
@@ -25,14 +25,36 @@ impl Builder {
 }
 
 impl RequestValidator for Builder {
-    fn is_valid_create(&self) -> bool {
-        self.name.is_some() &&
-            self.active.is_some() &&
+    fn is_valid_create(&self) -> RequestValidatorResult {
+        match (
+            self.name.is_some(),
+            self.active.is_some(),
             self.build_command.is_some()
+        ) {
+            (false, _, _) => Err(RequestValidatorError::MissingAttribute("name".to_string())),
+            (_, false, _) => Err(RequestValidatorError::MissingAttribute("active".to_string())),
+            (_, _, false) => Err(RequestValidatorError::MissingAttribute("build_command".to_string())),
+            (true, true, true) => Ok(()),
+        }
     }
 
-    fn is_valid_get(&self) -> bool {
-        self.name.is_some()
+    fn is_valid_get(&self) -> RequestValidatorResult {
+        if self.name.is_some() {
+            Ok(())
+        } else {
+            Err(RequestValidatorError::MissingAttribute("name".to_string()))
+        }
+    }
+
+    fn is_valid_update(&self) -> RequestValidatorResult {
+        match (
+            self.name.is_some(),
+            self.active.is_some(),
+            self.build_command.is_some()
+        ) {
+            (false, false, false) => Err(RequestValidatorError::AtLeastOneRequired),
+            (_, _, _) => Ok(())
+        }
     }
 }
 

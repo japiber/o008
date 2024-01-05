@@ -1,5 +1,6 @@
 use std::str::FromStr;
 use serde::{Deserialize, Serialize};
+use crate::request::{RequestValidatorError, RequestValidatorResult};
 use crate::RequestValidator;
 
 #[serde_with::skip_serializing_none]
@@ -27,13 +28,33 @@ impl Tenant {
 }
 
 impl RequestValidator for Tenant {
-    fn is_valid_create(&self) -> bool {
-        self.name.is_some() &&
+    fn is_valid_create(&self) -> RequestValidatorResult {
+        match (
+            self.name.is_some(),
             self.coexisting.is_some()
+        ) {
+            (false, _) => Err(RequestValidatorError::MissingAttribute("name".to_string())),
+            (_, false) => Err(RequestValidatorError::MissingAttribute("coexisting".to_string())),
+            (true, true) => Ok(()),
+        }
     }
 
-    fn is_valid_get(&self) -> bool {
-        self.name.is_some()
+    fn is_valid_get(&self) -> RequestValidatorResult {
+        if self.name.is_some() {
+            Ok(())
+        } else {
+            Err(RequestValidatorError::MissingAttribute("name".to_string()))
+        }
+    }
+
+    fn is_valid_update(&self) -> RequestValidatorResult {
+        match (
+            self.name.is_some(),
+            self.coexisting.is_some()
+        ) {
+            (false, false) => Err(RequestValidatorError::AtLeastOneRequired),
+            (_, _) => Ok(()),
+        }
     }
 }
 

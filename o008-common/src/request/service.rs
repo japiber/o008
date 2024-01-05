@@ -2,6 +2,7 @@ use std::str::FromStr;
 use serde::{Deserialize, Serialize};
 use crate::request::application::Application;
 use crate::{ApplicationRequest, RequestValidator, TenantRequest};
+use crate::request::{RequestValidatorError, RequestValidatorResult};
 
 #[serde_with::skip_serializing_none]
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
@@ -48,17 +49,40 @@ impl Service {
 }
 
 impl RequestValidator for Service {
-    fn is_valid_create(&self) -> bool {
-        self.name.is_some() &&
-            self.application.as_ref().is_some() &&
-            self.default_repo.as_ref().is_some() &&
-            self.application.as_ref().unwrap().is_valid_get()
+    fn is_valid_create(&self) -> RequestValidatorResult {
+        match (
+            self.name.is_some(),
+            self.application.as_ref().is_some(),
+            self.default_repo.is_some()
+        ) {
+            (false, _, _) => Err(RequestValidatorError::MissingAttribute("name".to_string())),
+            (_, false, _) => Err(RequestValidatorError::MissingAttribute("application".to_string())),
+            (_, _, false) => Err(RequestValidatorError::MissingAttribute("default_repo".to_string())),
+            (true, true, true) => self.application.as_ref().unwrap().is_valid_get()
+        }
     }
 
-    fn is_valid_get(&self) -> bool {
-        self.name.is_some() &&
-            self.application.as_ref().is_some() &&
-            self.application.as_ref().unwrap().is_valid_get()
+    fn is_valid_get(&self) -> RequestValidatorResult {
+        match (
+            self.name.is_some(),
+            self.application.as_ref().is_some()
+        ) {
+            (false, _) => Err(RequestValidatorError::MissingAttribute("name".to_string())),
+            (_, false) => Err(RequestValidatorError::MissingAttribute("application".to_string())),
+            (true, true) => self.application.as_ref().unwrap().is_valid_get()
+        }
+    }
+
+    fn is_valid_update(&self) -> RequestValidatorResult {
+        match (
+            self.name.is_some(),
+            self.application.as_ref().is_some(),
+            self.default_repo.is_some()
+        ) {
+            (false, false, false) => Err(RequestValidatorError::AtLeastOneRequired),
+            (_, true, _) => self.application.as_ref().unwrap().is_valid_get(),
+            (_, _, _) => Ok(()),
+        }
     }
 }
 

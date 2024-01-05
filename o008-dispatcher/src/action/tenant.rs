@@ -5,18 +5,19 @@ use crate::{DispatcherError, DispatchResult};
 use crate::AppCommandError::{Create, InvalidRequest, InvalidResponse, NotFound};
 
 pub async fn create(trq: &TenantRequest) -> DispatchResult<Value> {
-    if trq.is_valid_create() {
-        let t = Tenant::new(trq.name(), trq.coexisting());
-        let r = persist_json(Box::new(t)).await;
-        r.map_err(|e| DispatcherError::from(Create(format!("{}", e))))
-    } else {
-        Err(DispatcherError::from(InvalidRequest(String::from("tenant request is not valid"))))
+    match trq.is_valid_create() {
+        Ok(()) => {
+            let t = Tenant::new(trq.name(), trq.coexisting());
+            let r = persist_json(Box::new(t)).await;
+            r.map_err(|e| DispatcherError::from(Create(format!("{}", e))))
+        },
+        Err(e) => Err(DispatcherError::from(InvalidRequest(e.to_string())))
     }
 }
 
 pub async fn get(trq: &TenantRequest) -> DispatchResult<Value> {
-    if trq.is_valid_get() {
-        match Tenant::read(to_value(trq).unwrap()).await {
+    match trq.is_valid_get() {
+        Ok(()) => match Tenant::read(to_value(trq).unwrap()).await {
             Ok(b) => {
                 match to_value(*b) {
                     Ok(v) => Ok(v),
@@ -24,8 +25,7 @@ pub async fn get(trq: &TenantRequest) -> DispatchResult<Value> {
                 }
             },
             Err(e) => Err(DispatcherError::from(NotFound(e.to_string())))
-        }
-    } else {
-        Err(DispatcherError::from(InvalidRequest(String::from("tenant request is not valid"))))
+        },
+        Err(e) => Err(DispatcherError::from(InvalidRequest(e.to_string())))
     }
 }
