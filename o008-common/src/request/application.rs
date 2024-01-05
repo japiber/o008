@@ -40,11 +40,17 @@ impl Application {
 
 impl RequestValidator for Application {
     fn is_valid_create(&self) -> bool {
-        self.name.is_some() && self.tenant.is_some() && self.class_unit.is_some() && self.functional_group.is_some()
+        self.name.is_some() &&
+            self.tenant.as_ref().is_some() &&
+            self.class_unit.is_some() &&
+            self.functional_group.is_some() &&
+            self.tenant.as_ref().unwrap().is_valid_get()
     }
 
     fn is_valid_get(&self) -> bool {
-        self.name.is_some() && self.tenant.is_some()
+        self.name.is_some() &&
+            self.tenant.as_ref().is_some() &&
+            self.tenant.as_ref().unwrap().is_valid_get()
     }
 }
 

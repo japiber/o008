@@ -49,11 +49,16 @@ impl Service {
 
 impl RequestValidator for Service {
     fn is_valid_create(&self) -> bool {
-        self.name.is_some() && self.application.is_some() && self.default_repo.is_some()
+        self.name.is_some() &&
+            self.application.as_ref().is_some() &&
+            self.default_repo.as_ref().is_some() &&
+            self.application.as_ref().unwrap().is_valid_get()
     }
 
     fn is_valid_get(&self) -> bool {
-        self.name.is_some() && self.application.is_some()
+        self.name.is_some() &&
+            self.application.as_ref().is_some() &&
+            self.application.as_ref().unwrap().is_valid_get()
     }
 }
 

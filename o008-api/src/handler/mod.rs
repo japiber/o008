@@ -12,10 +12,11 @@ fn dispatch_error_into_response(e: DispatcherError) -> Response {
     match e {
         DispatcherError::AppCommand(app_err) =>
             match app_err {
-                AppCommandError::Create(s) => (StatusCode::INTERNAL_SERVER_ERROR, s).into_response(),
+                AppCommandError::Create(s) => (StatusCode::BAD_REQUEST, s).into_response(),
                 AppCommandError::NotFound(s) => (StatusCode::NOT_FOUND, s).into_response(),
-                AppCommandError::Destroy(s) => (StatusCode::INTERNAL_SERVER_ERROR, s).into_response(),
-                AppCommandError::InvalidRequest(s) => (StatusCode::BAD_REQUEST, s).into_response()
+                AppCommandError::Destroy(s) => (StatusCode::GONE, s).into_response(),
+                AppCommandError::InvalidRequest(s) => (StatusCode::BAD_REQUEST, s).into_response(),
+                AppCommandError::InvalidResponse(s) => (StatusCode::UNPROCESSABLE_ENTITY, s).into_response(),
             },
         DispatcherError::InternalCommand(int_error) =>
         match int_error {

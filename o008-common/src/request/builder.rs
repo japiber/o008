@@ -26,7 +26,9 @@ impl Builder {
 
 impl RequestValidator for Builder {
     fn is_valid_create(&self) -> bool {
-        self.name.is_some() && self.active.is_some() && self.build_command.is_some()
+        self.name.is_some() &&
+            self.active.is_some() &&
+            self.build_command.is_some()
     }
 
     fn is_valid_get(&self) -> bool {

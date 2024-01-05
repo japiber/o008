@@ -28,7 +28,8 @@ impl Tenant {
 
 impl RequestValidator for Tenant {
     fn is_valid_create(&self) -> bool {
-        self.name.is_some() && self.coexisting.is_some()
+        self.name.is_some() &&
+            self.coexisting.is_some()
     }
 
     fn is_valid_get(&self) -> bool {
