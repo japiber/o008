@@ -1,7 +1,6 @@
 mod app_argument;
 mod app_config;
 mod app_log_level;
-mod app_command;
 
 use tracing_subscriber::fmt::format::{Compact, DefaultFields, Format};
 use tracing_subscriber::fmt::Subscriber;
@@ -9,7 +8,7 @@ use once_cell::sync::OnceCell;
 use tracing::level_filters::LevelFilter;
 pub use app_log_level::AppLogLevel;
 pub use app_argument::AppArgument;
-pub use app_command::AppCommand;
+pub use o008_common::AppCommand;
 pub use app_config::AppConfig;
 pub use app_config::Database;
 
@@ -19,7 +18,7 @@ static ST_APP_CONFIG: OnceCell<AppConfig> = OnceCell::new();
 static ST_APP_ARGS: OnceCell<AppArgument> = OnceCell::new();
 
 pub fn app_args<'a>() -> &'a AppArgument {
-    ST_APP_ARGS.get_or_init(|| AppArgument::new())
+    ST_APP_ARGS.get_or_init(Default::default)
 }
 
 pub fn app_config<'a>() -> &'a AppConfig {

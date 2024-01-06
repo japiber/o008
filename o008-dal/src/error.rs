@@ -1,15 +1,15 @@
 use std::fmt::{Display, Formatter};
 use std::error::Error as StdError;
 
-type BoxDynError = Box<dyn StdError + Send + Sync + 'static>;
 
 #[derive(Debug)]
 pub enum DalError {
-    DataCreation(BoxDynError),
-    DataNotFound(BoxDynError),
-    DataUpdate(BoxDynError),
-    DataDelete(BoxDynError),
-    DataGenericError(BoxDynError),
+    DataCreation(sqlx::Error),
+    DataNotFound(String),
+    DataUpdate(sqlx::Error),
+    DataDelete(sqlx::Error),
+    DataGenericError(sqlx::Error),
+    InvalidKey(String),
 }
 
 impl Display for DalError {
@@ -20,6 +20,7 @@ impl Display for DalError {
             DalError::DataUpdate(e) => write!(f, "could not update: {}", e),
             DalError::DataDelete(e) => write!(f, "could not delete: {}", e),
             DalError::DataGenericError(e) => write!(f, "generic error: {}", e),
+            DalError::InvalidKey(e) => write!(f, "specified key is not valid: {}", e),
         }
     }
 }
