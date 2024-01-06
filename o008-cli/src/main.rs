@@ -1,5 +1,5 @@
 use tracing::{error, info};
-use o008_dispatcher::{poll_message, send_message};
+use o008_dispatcher::{DispatchCommand, DispatchMessage};
 use o008_setting::{app_args, AppLogLevel, initialize_tracing};
 use o008_common::{defer, ScopeCall};
 
@@ -16,8 +16,8 @@ async fn main() {
 
 async fn command_dispatcher() {
     if let Some(cmd) = &app_args().command {
-        let msg = send_message(cmd);
-        match poll_message(msg.id()).await {
+        let msg = DispatchMessage::send(DispatchCommand::from(cmd.clone()));
+        match msg.poll().await {
             Ok(v) => println!("publish {}", serde_json::to_string_pretty(&v).unwrap()),
             Err(e) => error!("{}", e.to_string())
         }

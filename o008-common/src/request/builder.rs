@@ -1,16 +1,17 @@
 use std::str::FromStr;
 use serde::{Deserialize, Serialize};
 use crate::request::{RequestValidator, RequestValidatorError, RequestValidatorResult};
+use utoipa::ToSchema;
 
 #[serde_with::skip_serializing_none]
-#[derive(Serialize, Deserialize, Debug, Clone, Default)]
-pub struct Builder {
+#[derive(Serialize, Deserialize, Debug, Clone, Default, ToSchema)]
+pub struct BuilderRequest {
     pub name: Option<String>,
     pub active: Option<bool>,
     pub build_command: Option<String>,
 }
 
-impl Builder {
+impl BuilderRequest {
     pub fn name(&self) -> &str {
         self.name.as_ref().unwrap().as_str()
     }
@@ -24,7 +25,7 @@ impl Builder {
     }
 }
 
-impl RequestValidator for Builder {
+impl RequestValidator for BuilderRequest {
     fn is_valid_create(&self) -> RequestValidatorResult {
         match (
             self.name.is_some(),
@@ -58,11 +59,11 @@ impl RequestValidator for Builder {
     }
 }
 
-impl FromStr for Builder {
+impl FromStr for BuilderRequest {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let res: Builder =
+        let res: BuilderRequest =
             serde_json::from_str(s).map_err(|e| format!("error parsing builder request: {}", e))?;
         Ok(res)
     }

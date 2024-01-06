@@ -1,19 +1,19 @@
 use std::str::FromStr;
 use serde::{Deserialize, Serialize};
-use crate::request::application::Application;
 use crate::{ApplicationRequest, RequestValidator, TenantRequest};
 use crate::request::{RequestValidatorError, RequestValidatorResult};
+use utoipa::ToSchema;
 
 #[serde_with::skip_serializing_none]
-#[derive(Serialize, Deserialize, Debug, Clone, Default)]
-pub struct Service {
+#[derive(Serialize, Deserialize, Debug, Clone, Default, ToSchema)]
+pub struct ServiceRequest {
     name: Option<String>,
-    application: Option<Application>,
+    application: Option<ApplicationRequest>,
     default_repo: Option<String>,
 }
 
-impl Service {
-    pub fn new(n: Option<String>, app: Option<Application>, repo: Option<String>) -> Self {
+impl ServiceRequest {
+    pub fn new(n: Option<String>, app: Option<ApplicationRequest>, repo: Option<String>) -> Self {
         Self {
             name: n,
             application: app,
@@ -21,34 +21,35 @@ impl Service {
         }
     }
 
-    pub fn get_request(name: String, application: String, tenant: String) -> Self {
+    pub fn build_get_request(name: String, application: String, tenant: String) -> Self {
         Self::new(
             Some(name),
-                Some(ApplicationRequest::new(
+                Some(
+                    ApplicationRequest::new(
                         Some(application),
                         Some(TenantRequest::new(Some(tenant), None)),
                         None,
                         None
-                )
-            ),
-            None,
+                    )
+                ),
+            None
         )
     }
 
-    pub fn name(&self) -> &str {
-        self.name.as_ref().unwrap().as_str()
+    pub fn name(&self) -> Option<String> {
+        self.name.clone()
     }
 
-    pub fn application(&self) -> Application {
-        self.application.as_ref().unwrap().clone()
+    pub fn application(&self) -> Option<ApplicationRequest> {
+        self.application.clone()
     }
 
-    pub fn default_repo(&self) -> &str {
-        self.default_repo.as_ref().unwrap().as_str()
+    pub fn default_repo(&self) -> Option<String> {
+        self.default_repo.clone()
     }
 }
 
-impl RequestValidator for Service {
+impl RequestValidator for ServiceRequest {
     fn is_valid_create(&self) -> RequestValidatorResult {
         match (
             self.name.is_some(),
@@ -86,11 +87,11 @@ impl RequestValidator for Service {
     }
 }
 
-impl FromStr for Service {
+impl FromStr for ServiceRequest {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let res: Service =
+        let res: ServiceRequest =
             serde_json::from_str(s).map_err(|e| format!("error parsing service request: {}", e))?;
         Ok(res)
     }

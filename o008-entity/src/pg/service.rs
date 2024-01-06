@@ -63,6 +63,19 @@ impl Service {
     pub fn default_repo(&self) -> &str {
         &self.default_repo
     }
+
+    pub fn update(&mut self, srq: &ServiceRequest, app: Option<Application>) {
+        if let Some(name) = srq.name() {
+            self.name = name.to_lowercase();
+            self.original_name = name;
+        }
+        if let Some(application) = app {
+            self.application = application
+        }
+        if let Some(default_repo) = srq.default_repo() {
+            self.default_repo = default_repo;
+        }
+    }
 }
 
 impl Entity<ServiceDao> for Service {

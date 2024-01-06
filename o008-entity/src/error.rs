@@ -16,8 +16,8 @@ impl Display for EntityError {
             EntityError::Persist(e) => write!(f, "could not persist entity: {}", e),
             EntityError::Destroy(e) => write!(f, "could not destroy entity: {}", e),
             EntityError::UnPersisted(s) => write!(f, "entity {} has not been persisted", s),
-            EntityError::WrongQuery(s) => write!(f, "query is not correct: {}", s),
-            EntityError::NotFound(s) => write!(f, "nothing has been found for query: {}", s)
+            EntityError::WrongQuery(s) => write!(f, "{}", s),
+            EntityError::NotFound(s) => write!(f, "{}", s)
         }
     }
 }

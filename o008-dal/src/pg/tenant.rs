@@ -39,8 +39,8 @@ impl Tenant {
 #[async_trait]
 impl DaoQuery<PgPool, Postgres> for Tenant {
     async fn read(key: Value) -> Result<Box<Self>, error::DalError> {
-        let id_key= soft_check_key(&key, &["id"])?;
-        return if let Some(id) = id_key.first().unwrap() {
+        if let Ok(id_key) = hard_check_key(&key, &["id"]) {
+            let id = id_key.first().unwrap();
             Self::query_ctx().await.fetch_one(
                 sqlx::query_as::<_, Self>("SELECT id, name, coexisting FROM tenant WHERE id=$1")
                     .bind(Uuid::parse_str(id.as_str().unwrap()).unwrap())

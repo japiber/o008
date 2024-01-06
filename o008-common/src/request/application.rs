@@ -2,17 +2,18 @@ use std::str::FromStr;
 use serde::{Deserialize, Serialize};
 use crate::{RequestValidator, TenantRequest};
 use crate::request::{RequestValidatorError, RequestValidatorResult};
+use utoipa::ToSchema;
 
 #[serde_with::skip_serializing_none]
-#[derive(Serialize, Deserialize, Debug, Clone, Default)]
-pub struct Application {
+#[derive(Serialize, Deserialize, Debug, Clone, Default, ToSchema)]
+pub struct ApplicationRequest {
     name: Option<String>,
     tenant: Option<TenantRequest>,
     class_unit: Option<String>,
     functional_group: Option<String>,
 }
 
-impl Application {
+impl ApplicationRequest {
     pub fn new(n: Option<String>, t: Option<TenantRequest>, cu: Option<String>, fg: Option<String>) -> Self {
         Self {
             name: n,
@@ -39,7 +40,7 @@ impl Application {
     }
 }
 
-impl RequestValidator for Application {
+impl RequestValidator for ApplicationRequest {
     fn is_valid_create(&self) -> RequestValidatorResult {
         match (
             self.name.is_some(),
@@ -80,11 +81,11 @@ impl RequestValidator for Application {
     }
 }
 
-impl FromStr for Application {
+impl FromStr for ApplicationRequest {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let res: Application =
+        let res: ApplicationRequest =
             serde_json::from_str(s).map_err(|e| format!("error parsing application request: {}", e))?;
         Ok(res)
     }

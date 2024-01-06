@@ -4,6 +4,7 @@ use std::fmt::{Display, Formatter};
 #[derive(Debug, Clone)]
 pub enum AppCommandError {
     Create(String),
+    Update(String),
     NotFound(String),
     Destroy(String),
     InvalidRequest(String),
@@ -25,6 +26,7 @@ impl Display for AppCommandError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             AppCommandError::Create(s) => write!(f, "create: {}", s),
+            AppCommandError::Update(s) => write!(f, "update: {}", s),
             AppCommandError::NotFound(s) => write!(f, "not found: {}", s),
             AppCommandError::Destroy(s) => write!(f, "destroy: {}", s),
             AppCommandError::InvalidRequest(s) => write!(f, "invalid request: {}", s),

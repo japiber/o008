@@ -35,6 +35,11 @@ pub enum AppCommand {
         #[arg(short, long)]
         value: ServiceRequest,
     },
+    UpdateService {
+        #[arg(short, long)]
+        source: ServiceRequest,
+        value: ServiceRequest,
+    },
     GetService {
         #[arg(short, long)]
         value: ServiceRequest,

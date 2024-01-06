@@ -2,15 +2,16 @@ use std::str::FromStr;
 use serde::{Deserialize, Serialize};
 use crate::request::{RequestValidatorError, RequestValidatorResult};
 use crate::RequestValidator;
+use utoipa::ToSchema;
 
 #[serde_with::skip_serializing_none]
-#[derive(Serialize, Deserialize, Debug, Clone, Default)]
-pub struct Tenant {
+#[derive(Serialize, Deserialize, Debug, Clone, Default, ToSchema)]
+pub struct TenantRequest {
     pub name: Option<String>,
     pub coexisting: Option<bool>
 }
 
-impl Tenant {
+impl TenantRequest {
     pub fn new(name: Option<String>, coexisting: Option<bool>) -> Self {
         Self {
             name,
@@ -27,7 +28,7 @@ impl Tenant {
     }
 }
 
-impl RequestValidator for Tenant {
+impl RequestValidator for TenantRequest {
     fn is_valid_create(&self) -> RequestValidatorResult {
         match (
             self.name.is_some(),
@@ -58,11 +59,11 @@ impl RequestValidator for Tenant {
     }
 }
 
-impl FromStr for Tenant {
+impl FromStr for TenantRequest {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let res: Tenant =
+        let res: TenantRequest =
             serde_json::from_str(s).map_err(|e| format!("error parsing tenant request: {}", e))?;
         Ok(res)
     }

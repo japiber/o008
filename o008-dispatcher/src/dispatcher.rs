@@ -18,6 +18,7 @@ impl AsyncDispatcher<serde_json::Value> for AppCommand {
             AppCommand::CreateApplication { value} => action::application::create(value).await,
             AppCommand::GetApplication { value } => action::application::get(value).await,
             AppCommand::CreateService { value } => action::service::create(value).await,
+            AppCommand::UpdateService { source, value} => action::service::update(source, value).await,
             AppCommand::GetService { value } => action::service::get(value).await,
         }
     }

@@ -7,10 +7,10 @@ mod request;
 pub use command::AppCommand;
 pub use command::InternalCommand;
 pub use macros::ScopeCall;
-pub use request::application::Application as ApplicationRequest;
-pub use request::builder::Builder as BuilderRequest;
-pub use request::service::Service as ServiceRequest;
-pub use request::tenant::Tenant as TenantRequest;
+pub use request::application::ApplicationRequest;
+pub use request::builder::BuilderRequest;
+pub use request::service::ServiceRequest;
+pub use request::tenant::TenantRequest;
 pub use request::RequestValidator;
 
 pub type BoxDynError = Box<dyn StdError + Send + Sync + 'static>;

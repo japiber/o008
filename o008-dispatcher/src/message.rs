@@ -1,5 +1,6 @@
+use serde_json::Value;
 use uuid::Uuid;
-use crate::DispatchCommand;
+use crate::{DispatchCommand, DispatchResult, MessagePoll, ST_DISPATCHER_CHANNEL, ST_MESSAGE_QUEUE};
 
 #[derive(Debug, Clone)]
 pub struct DispatchMessage {
@@ -8,11 +9,13 @@ pub struct DispatchMessage {
 }
 
 impl DispatchMessage {
-    pub fn new (cmd: DispatchCommand) -> Self {
-        Self {
+    pub fn send (cmd: DispatchCommand) -> Self {
+        let msg = Self {
             id: Uuid::new_v4(),
             request: cmd,
-        }
+        };
+        ST_DISPATCHER_CHANNEL.get_or_init(Default::default).send(msg.clone());
+        msg
     }
 
     pub fn id(&self) -> Uuid {
@@ -21,5 +24,9 @@ impl DispatchMessage {
 
     pub fn request(&self) -> DispatchCommand {
         self.request.clone()
+    }
+
+    pub async fn poll(&self) -> DispatchResult<Value> {
+        ST_MESSAGE_QUEUE.get_or_init(Default::default).poll(self.id()).await
     }
 }
