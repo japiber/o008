@@ -12,9 +12,9 @@ authors.workspace = true
 
 [dependencies]
 o008-common = { path = "../o008-common" }
+o008-action = { path = "../o008-action" }
 o008-setting = { path = "../o008-setting" }
-o008-entity = { path = "../o008-entity" }
-tracing = "0.1.40"
+tracing = "0.1"
 async-trait = { version = "0.1", features = [] }
 serde = { version = "1.0", features = ["derive", "std"] }
 serde_json = "1.0"

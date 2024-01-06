@@ -1,6 +1,7 @@
 use serde_json::Value;
 use uuid::Uuid;
-use crate::{DispatchCommand, DispatchResult, MessagePoll, ST_DISPATCHER_CHANNEL, ST_MESSAGE_QUEUE};
+use crate::{DispatchCommand, DispatchResult, ST_DISPATCHER_CHANNEL, ST_MESSAGE_QUEUE};
+use crate::command_queue::MessagePoll;
 
 #[derive(Debug, Clone)]
 pub struct DispatchMessage {

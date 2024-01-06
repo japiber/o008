@@ -1,6 +1,6 @@
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
-use o008_dispatcher::{AppCommandError, DispatcherError, InternalCommandError};
+use o008_common::error::{AppCommandError, DispatcherError, InternalCommandError};
 
 mod service;
 

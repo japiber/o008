@@ -1,10 +1,10 @@
 use serde_json::{to_value, Value};
 
-use o008_common::{ApplicationRequest, RequestValidator};
+use o008_common::{ApplicationRequest, RequestValidator, DispatchResult};
 use o008_entity::{Application, persist_json, QueryEntity, Tenant};
 
-use crate::{DispatcherError, DispatchResult};
-use crate::AppCommandError::{Create, InvalidRequest, InvalidResponse, NotFound};
+use o008_common::error::AppCommandError::{Create, InvalidRequest, InvalidResponse, NotFound};
+use o008_common::error::DispatcherError;
 
 pub async fn create(arq: &ApplicationRequest) -> DispatchResult<Value> {
     match arq.is_valid_create() {

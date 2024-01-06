@@ -1,8 +1,8 @@
 use async_trait::async_trait;
-use o008_common::{AppCommand, InternalCommand};
-use crate::{action, AsyncDispatcher, DispatchCommand, DispatchMessage, DispatchResult};
-use crate::error::DispatcherError;
-use crate::error::InternalCommandError::Terminate;
+use o008_common::{AppCommand, DispatcherError, InternalCommand};
+use o008_common::InternalCommandError::Terminate;
+use o008_action::{application, builder, service, tenant};
+use crate::{AsyncDispatcher, DispatchCommand, DispatchMessage, DispatchResult};
 
 
 #[async_trait]
@@ -10,16 +10,16 @@ impl AsyncDispatcher<serde_json::Value> for AppCommand {
     #[tracing::instrument]
     async fn dispatch(&self) -> DispatchResult<serde_json::Value> {
         match self {
-            AppCommand::CreateBuilder { value } => action::builder::create(value).await,
-            AppCommand::GetBuilder { value} => action::builder::get(value).await,
-            AppCommand::DeleteBuilder { value } => action::builder::delete(value).await,
-            AppCommand::CreateTenant { value} => action::tenant::create(value).await,
-            AppCommand::GetTenant { value } => action::tenant::get(value).await,
-            AppCommand::CreateApplication { value} => action::application::create(value).await,
-            AppCommand::GetApplication { value } => action::application::get(value).await,
-            AppCommand::CreateService { value } => action::service::create(value).await,
-            AppCommand::UpdateService { source, value} => action::service::update(source, value).await,
-            AppCommand::GetService { value } => action::service::get(value).await,
+            AppCommand::CreateBuilder { value } => builder::create(value).await,
+            AppCommand::GetBuilder { value} => builder::get(value).await,
+            AppCommand::DeleteBuilder { value } => builder::delete(value).await,
+            AppCommand::CreateTenant { value} => tenant::create(value).await,
+            AppCommand::GetTenant { value } => tenant::get(value).await,
+            AppCommand::CreateApplication { value} => application::create(value).await,
+            AppCommand::GetApplication { value } => application::get(value).await,
+            AppCommand::CreateService { value } => service::create(value).await,
+            AppCommand::UpdateService { source, value} => service::update(source, value).await,
+            AppCommand::GetService { value } => service::get(value).await,
         }
     }
 }
