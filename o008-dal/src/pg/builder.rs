@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sqlx::Postgres;
 use uuid::Uuid;
-use crate::{QueryContext, error, CommandContext, DaoQuery, DaoCommand, DalCount};
+use crate::{QueryContext, error, CommandContext, DaoQuery, DaoCommand, DalCount, gen_v7_uuid};
 use crate::pg::{hard_check_key, PgPool, soft_check_key};
 
 
@@ -15,6 +15,32 @@ pub struct Builder {
     build_command: String,
 }
 
+impl Builder {
+    pub fn new(id: Uuid, name: &str, active: bool, build_command: &str) -> Self {
+        Self {
+            id: gen_v7_uuid(id),
+            name: String::from(name),
+            active,
+            build_command: String::from(build_command)
+        }
+    }
+
+    pub fn id(&self) -> Uuid {
+        self.id
+    }
+
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn active(&self) -> bool {
+        self.active
+    }
+
+    pub fn build_command(&self) -> &str {
+        &self.build_command
+    }
+}
 
 #[async_trait]
 impl DaoQuery<PgPool, Postgres> for Builder {
@@ -85,33 +111,4 @@ impl DaoCommand<PgPool, Postgres> for Builder {
                 .bind(self.id)
         ).await
     }
-
-}
-
-impl Builder {
-    pub fn new(id: Uuid, name: &str, active: bool, build_command: &str) -> Self {
-        Self {
-            id,
-            name: String::from(name),
-            active,
-            build_command: String::from(build_command)
-        }
-    }
-
-    pub fn id(&self) -> Uuid {
-        self.id
-    }
-
-    pub fn name(&self) -> &str {
-        &self.name
-    }
-
-    pub fn active(&self) -> bool {
-        self.active
-    }
-
-    pub fn build_command(&self) -> &str {
-        &self.build_command
-    }
-
 }

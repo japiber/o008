@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sqlx::Postgres;
 use uuid::Uuid;
-use crate::{CommandContext, DalError, DaoCommand, DaoQuery, QueryContext, DalCount};
+use crate::{CommandContext, DalError, DaoCommand, DaoQuery, QueryContext, DalCount, gen_v7_uuid};
 use crate::pg::{hard_check_key, PgPool, Tenant};
 
 
@@ -14,6 +14,38 @@ pub struct Application {
     tenant: Uuid,
     class_unit: String,
     functional_group: String,
+}
+
+impl Application {
+    pub fn new(id: Uuid, name: &str, tenant: Uuid, class: &str, fq: &str) -> Self {
+        Self {
+            id: gen_v7_uuid(id),
+            name: String::from(name),
+            tenant,
+            class_unit: String::from(class),
+            functional_group: String::from(fq),
+        }
+    }
+
+    pub fn id(&self) -> Uuid {
+        self.id
+    }
+
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn tenant(&self) -> Uuid {
+        self.tenant
+    }
+
+    pub fn class_unit(&self) -> &str {
+        &self.class_unit
+    }
+
+    pub fn functional_group(&self) -> &str {
+        &self.functional_group
+    }
 }
 
 #[async_trait]
@@ -101,37 +133,5 @@ impl DaoCommand<PgPool, Postgres> for Application {
             sqlx::query("DELETE FROM application WHERE id = $1")
                 .bind(self.id)
         ).await
-    }
-}
-
-impl Application {
-    pub fn new(id: Uuid, name: &str, tenant: Uuid, class: &str, fq: &str) -> Self {
-        Self {
-            id,
-            name: String::from(name),
-            tenant,
-            class_unit: String::from(class),
-            functional_group: String::from(fq),
-        }
-    }
-
-    pub fn id(&self) -> Uuid {
-        self.id
-    }
-
-    pub fn name(&self) -> &str {
-        &self.name
-    }
-
-    pub fn tenant(&self) -> Uuid {
-        self.tenant
-    }
-
-    pub fn class_unit(&self) -> &str {
-        &self.class_unit
-    }
-    
-    pub fn functional_group(&self) -> &str {
-        &self.functional_group
     }
 }

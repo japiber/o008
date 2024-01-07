@@ -80,11 +80,7 @@ impl Service {
 
 impl Entity<ServiceDao> for Service {
     fn dao(&self) -> Box<ServiceDao> {
-        if self.id.is_nil() {
-            Box::new(ServiceDao::new(Uuid::new_v4(), &self.name, &self.original_name, self.application.id(), &self.default_repo))
-        } else {
-            Box::new(ServiceDao::new(self.id, &self.name, &self.original_name, self.application.id(), &self.default_repo))
-        }
+        Box::new(ServiceDao::new(self.id, &self.name, &self.original_name, self.application.id(), &self.default_repo))
     }
 }
 

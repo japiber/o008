@@ -66,11 +66,7 @@ impl Application {
 
 impl Entity<ApplicationDao> for Application {
     fn dao(&self) -> Box<ApplicationDao> {
-        Box::new(if self.id.is_nil() {
-            ApplicationDao::new(Uuid::new_v4(), &self.name, self.tenant.dao().id(), &self.class_unit, &self.functional_group)
-        } else {
-            ApplicationDao::new(self.id, &self.name, self.tenant.dao().id(), &self.class_unit, &self.functional_group)
-        })
+        Box::new(ApplicationDao::new(self.id, &self.name, self.tenant.dao().id(), &self.class_unit, &self.functional_group))
     }
 }
 

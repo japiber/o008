@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sqlx::Postgres;
 use uuid::Uuid;
-use crate::{CommandContext, DalCount, DalError, DaoCommand, DaoQuery, QueryContext};
+use crate::{CommandContext, DalCount, DalError, DaoCommand, DaoQuery, gen_v7_uuid, QueryContext};
 use crate::pg::{Application, hard_check_key, PgPool, soft_check_key};
 
 
@@ -19,7 +19,7 @@ pub struct Service {
 impl Service {
     pub fn new(id: Uuid, name: &str, original_name: &str, application: Uuid, default_repo: &str) -> Self {
         Self {
-            id,
+            id: gen_v7_uuid(id),
             name: String::from(name),
             original_name: String::from(original_name),
             application,

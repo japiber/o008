@@ -52,11 +52,7 @@ impl Tenant {
 
 impl Entity<TenantDao> for Tenant {
     fn dao(&self) -> Box<TenantDao> {
-        if self.id.is_nil() {
-            Box::new(TenantDao::new(Uuid::new_v4(), &self.name, self.coexisting))
-        } else {
-            Box::new(TenantDao::new(self.id, &self.name, self.coexisting))
-        }
+        Box::new(TenantDao::new(self.id, &self.name, self.coexisting))
     }
 }
 

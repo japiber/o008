@@ -3,13 +3,13 @@ use o008_common::{AppCommand, InternalCommand};
 
 #[derive(Debug, Clone)]
 pub enum DispatchCommand {
-    App(AppCommand),
+    App(Box<AppCommand>),
     Internal(InternalCommand)
 }
 
 impl From<AppCommand> for DispatchCommand {
     fn from(value: AppCommand) -> Self {
-        DispatchCommand::App(value)
+        DispatchCommand::App(Box::new(value))
     }
 }
 

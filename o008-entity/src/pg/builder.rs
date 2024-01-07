@@ -59,11 +59,7 @@ impl Builder {
 #[async_trait]
 impl Entity<BuilderDao> for Builder {
     fn dao(&self) -> Box<BuilderDao> {
-        if self.id.is_nil() {
-            Box::new(BuilderDao::new(Uuid::new_v4(), &self.name, self.active, &self.build_command))
-        } else {
-            Box::new(BuilderDao::new(self.id, &self.name, self.active, &self.build_command))
-        }
+        Box::new(BuilderDao::new(self.id, &self.name, self.active, &self.build_command))
     }
 }
 

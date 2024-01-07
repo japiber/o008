@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sqlx::Postgres;
 use uuid::Uuid;
-use crate::{QueryContext, error, CommandContext, DaoCommand, DaoQuery, DalCount};
+use crate::{QueryContext, error, CommandContext, DaoCommand, DaoQuery, DalCount, gen_v7_uuid};
 use crate::pg::{hard_check_key, PgPool, soft_check_key};
 
 
@@ -17,7 +17,7 @@ pub struct Tenant {
 impl Tenant {
     pub fn new(id: Uuid, name: &str, coexisting: bool) -> Self {
         Self {
-            id,
+            id: gen_v7_uuid(id),
             name: String::from(name),
             coexisting,
         }
