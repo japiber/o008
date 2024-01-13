@@ -4,7 +4,7 @@ use serde_json::Value;
 use sqlx::Postgres;
 use uuid::Uuid;
 use crate::{CommandContext, DalCount, DalError, DaoCommand, DaoQuery, gen_v7_uuid, QueryContext};
-use crate::pg::{Application, hard_check_key, PgPool, soft_check_key};
+use crate::pg::{Application, hard_check_key, PgDao};
 
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, sqlx::FromRow)]
@@ -49,26 +49,31 @@ impl Service {
 }
 
 #[async_trait]
-impl DaoQuery<PgPool, Postgres> for Service {
+impl DaoQuery<PgDao, Postgres> for Service {
     async fn read(key: Value) -> Result<Box<Self>, DalError> {
-        let id_key= soft_check_key(&key, &["id"])?;
-        return if let Some(id) = id_key.first().unwrap() {
-            Self::query_ctx().await.fetch_one(
-                sqlx::query_as::<_, Self>("SELECT id, name, original_name, application, default_repo FROM service WHERE id=$1")
-                    .bind(Uuid::parse_str(id.as_str().unwrap()).unwrap())
-            ).await
-        } else {
-            let name_app_key = hard_check_key(&key, &["name", "application"])?;
-            let name = name_app_key.get(0).unwrap().as_str().unwrap();
-            let app_qry = name_app_key.get(1).unwrap();
-            if let Ok(app) = Application::read(app_qry.clone()).await {
+        match hard_check_key(&key, &["id"]) {
+            Ok(id_key) => {
+                let id = id_key.first().unwrap();
                 Self::query_ctx().await.fetch_one(
-                    sqlx::query_as::<_, Self>("SELECT id, name, original_name, application, default_repo FROM service WHERE name=$1 AND application=$2")
-                        .bind(name)
-                        .bind(app.id())
+                    sqlx::query_as::<_, Self>("SELECT id, name, original_name, application, default_repo FROM service WHERE id=$1")
+                        .bind(Uuid::parse_str(id.as_str().unwrap()).unwrap())
                 ).await
-            } else {
-                Err(DalError::DataNotFound(format!("application {}", app_qry)))
+            },
+            Err(_) => match hard_check_key(&key, &["name", "application"]) {
+                Ok(name_app_key) => {
+                    let name = name_app_key.get(0).unwrap().as_str().unwrap();
+                    let app_qry = name_app_key.get(1).unwrap();
+                    if let Ok(app) = Application::read(app_qry.clone()).await {
+                        Self::query_ctx().await.fetch_one(
+                            sqlx::query_as::<_, Self>("SELECT id, name, original_name, application, default_repo FROM service WHERE name=$1 AND application=$2")
+                                .bind(name)
+                                .bind(app.id())
+                        ).await
+                    } else {
+                        Err(DalError::DataNotFound(format!("application {}", app_qry)))
+                    }
+                }
+                Err(e) => Err(DalError::InvalidKey(format!("service dao read {}", e)))
             }
         }
     }
@@ -81,7 +86,7 @@ impl DaoQuery<PgPool, Postgres> for Service {
                 sqlx::query_as::<_, DalCount>("SELECT COUNT(*) AS count FROM service WHERE id=$1")
                     .bind(Uuid::parse_str(id.as_str().unwrap()).unwrap())
             ).await;
-            return r.unwrap().count > 0
+            r.unwrap().count > 0
         } else if let Ok(name_app_key) = hard_check_key(&key, &["name", "application"]) {
             let (name, app_qry) = (name_app_key.get(0).unwrap(), name_app_key.get(1).unwrap());
             if let Ok(app) = Application::read(app_qry.clone()).await {
@@ -90,19 +95,20 @@ impl DaoQuery<PgPool, Postgres> for Service {
                         .bind(name.as_str().unwrap())
                         .bind(app.id())
                 ).await;
-                let count = r.unwrap().count;
-                return count > 0
+                r.unwrap().count > 0
+            } else {
+                false
             }
+        } else {
+            false
         }
-        false
     }
 }
 
 #[async_trait]
-impl DaoCommand<PgPool, Postgres> for Service {
+impl DaoCommand<PgDao, Postgres> for Service {
     async fn insert(&self) -> Result<(), DalError> {
-        let cx = Self::command_ctx().await;
-        cx.execute(
+        Self::command_ctx().await.execute(
             sqlx::query("INSERT INTO service(id, name, original_name, application, default_repo) VALUES ($1, $2, $3, $4, $5)")
                 .bind(self.id)
                 .bind(self.name.as_str())
@@ -113,8 +119,7 @@ impl DaoCommand<PgPool, Postgres> for Service {
     }
 
     async fn update(&self) -> Result<(), DalError> {
-        let cx = Self::command_ctx().await;
-        cx.execute(
+        Self::command_ctx().await.execute(
             sqlx::query("UPDATE service SET name=$1, original_name=$2, application=$3, default_repo=$4 WHERE id=$5")
                 .bind(self.name.as_str())
                 .bind(self.original_name.as_str())
@@ -125,9 +130,8 @@ impl DaoCommand<PgPool, Postgres> for Service {
     }
 
     async fn delete(&self) -> Result<(), DalError> {
-        let cx = Self::command_ctx().await;
-        cx.execute(
-            sqlx::query("DELETE FROM service WHERE id = $1")
+        Self::command_ctx().await.execute(
+            sqlx::query("DELETE FROM service WHERE id=$1")
                 .bind(self.id)
         ).await
     }

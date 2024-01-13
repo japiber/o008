@@ -4,9 +4,9 @@ use serde_json::{json, Value};
 use sqlx::Postgres;
 use utoipa::ToSchema;
 use uuid::Uuid;
-use o008_common::{ApplicationRequest, AsyncFrom};
+use o008_common::{AsyncFrom};
 use o008_dal::{DalError, DaoCommand, DaoQuery};
-use o008_dal::pg::{PgPool};
+use o008_dal::pg::{PgDao};
 use crate::{DestroyEntity, Entity, EntityError, PersistEntity, QueryEntity, Tenant};
 use crate::pg::tenant::TenantDao;
 
@@ -71,7 +71,7 @@ impl Entity<ApplicationDao> for Application {
 }
 
 #[async_trait]
-impl QueryEntity<ApplicationDao, PgPool, Postgres> for Application {
+impl QueryEntity<ApplicationDao, PgDao, Postgres> for Application {
     async fn read(qry: Value) -> Result<Box<Self>, EntityError> {
         match ApplicationDao::read(qry).await {
             Ok(app) => Ok(Box::new(AsyncFrom::<ApplicationDao>::from(*app).await)),
@@ -88,7 +88,7 @@ impl QueryEntity<ApplicationDao, PgPool, Postgres> for Application {
 }
 
 #[async_trait]
-impl PersistEntity<ApplicationDao, PgPool, Postgres> for Application {
+impl PersistEntity<ApplicationDao, PgDao, Postgres> for Application {
     async fn persist(&self) -> Result<Box<Self>, EntityError> {
         let dao = self.dao();
         let r = if self.id.is_nil() {
@@ -112,7 +112,7 @@ impl PersistEntity<ApplicationDao, PgPool, Postgres> for Application {
 }
 
 #[async_trait]
-impl DestroyEntity<ApplicationDao, PgPool, Postgres> for Application {
+impl DestroyEntity<ApplicationDao, PgDao, Postgres> for Application {
     async fn destroy(&self) -> Result<(), EntityError> {
         if self.id.is_nil() {
             Err(EntityError::UnPersisted(String::from("application")))
@@ -125,18 +125,10 @@ impl DestroyEntity<ApplicationDao, PgPool, Postgres> for Application {
     }
 }
 
-#[async_trait::async_trait]
+#[async_trait]
 impl AsyncFrom<ApplicationDao> for Application {
     async fn from(value: ApplicationDao) -> Self {
         let td = TenantDao::read(json!({"id": value.tenant().to_string()})).await.unwrap();
         Self::load(value.id(), value.name(), From::<TenantDao>::from(*td), value.class_unit(), value.functional_group())
-    }
-}
-
-#[async_trait::async_trait]
-impl AsyncFrom<ApplicationRequest> for Application {
-    async fn from(value: ApplicationRequest) -> Self {
-        let app = ApplicationDao::read(serde_json::to_value(value).unwrap()).await.unwrap();
-        AsyncFrom::<ApplicationDao>::from(*app).await
     }
 }

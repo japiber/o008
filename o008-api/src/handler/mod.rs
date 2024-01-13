@@ -3,11 +3,14 @@ use axum::response::{IntoResponse, Response};
 use o008_common::error::{AppCommandError, DispatcherError, InternalCommandError};
 
 mod service;
+mod service_version;
 
-pub use service::get_service;
-pub use service::create_or_update;
-pub use service::__path_get_service;
-pub use service::__path_create_or_update;
+pub use service::service_get;
+pub use service::service_put;
+pub use service_version::service_version_put;
+pub use service::__path_service_get;
+pub use service::__path_service_put;
+pub use service_version::__path_service_version_put;
 
 
 fn dispatch_error_into_response(e: DispatcherError) -> Response {

@@ -2,13 +2,15 @@ mod builder;
 mod tenant;
 mod application;
 mod service;
+mod repo_reference;
+mod service_version;
 
 use std::sync::Arc;
 use async_trait::async_trait;
 use sqlx::{FromRow, Pool, Postgres};
 use sqlx::postgres::{PgArguments, PgRow, PgPoolOptions};
 use sqlx::query::{Query, QueryAs};
-use crate::{QueryContext, error, CommandContext, DBPool, DaoQuery, DaoCommand, DalError};
+use crate::{QueryContext, CommandContext, DBPool, DaoQuery, DaoCommand, DalError};
 use async_once::AsyncOnce;
 use serde_json::Value;
 use o008_setting::app_config;
@@ -17,6 +19,8 @@ pub use builder::Builder;
 pub use tenant::Tenant;
 pub use application::Application;
 pub use service::Service;
+pub use repo_reference::RepoReference;
+pub use service_version::ServiceVersion;
 
 pub type PgQueryContext = dyn QueryContext<Postgres>;
 pub type PgCommandContext = dyn CommandContext<Postgres>;
@@ -24,12 +28,12 @@ pub type PgDaoQuery = dyn DaoQuery<PgQueryContext, Postgres>;
 pub type PgDaoCommand = dyn DaoCommand<PgCommandContext, Postgres>;
 
 #[derive(Debug, Clone)]
-pub struct PgPool(Arc<Pool<Postgres>>);
+pub struct PgDao(Arc<Pool<Postgres>>);
 
 #[async_trait]
-impl DBPool<Postgres> for PgPool {
+impl DBPool<Postgres> for PgDao {
     async fn new() -> Self {
-        PgPool(pg_pool().await)
+        PgDao(pg_pool().await)
     }
 
     fn pool(&self) -> &Pool<Postgres> {
@@ -38,38 +42,38 @@ impl DBPool<Postgres> for PgPool {
 }
 
 #[async_trait]
-impl QueryContext<Postgres> for PgPool {
-    async fn fetch_all<'q, T>(&self, query: QueryAs<'q, Postgres, T, PgArguments>) -> Result<Vec<T>, error::DalError>
+impl QueryContext<Postgres> for PgDao {
+    async fn fetch_all<'q, T>(&self, query: QueryAs<'q, Postgres, T, PgArguments>) -> Result<Vec<T>, DalError>
         where T: Send + Unpin + for<'r> FromRow<'r, PgRow>
     {
         match query.fetch_all(self.pool()).await {
             Ok(t) => Ok(t),
             Err(e) => match e {
-                sqlx::Error::RowNotFound => Err(error::DalError::DataNotFound(e.to_string())),
-                _ => Err(error::DalError::DataGenericError(e)),
+                sqlx::Error::RowNotFound => Err(DalError::DataNotFound(e.to_string())),
+                _ => Err(DalError::DataGenericError(e)),
             },
         }
     }
 
-    async fn fetch_one<'q, T>(&self, query: QueryAs<'q, Postgres, T, PgArguments>) -> Result<Box<T>, error::DalError>
+    async fn fetch_one<'q, T>(&self, query: QueryAs<'q, Postgres, T, PgArguments>) -> Result<Box<T>, DalError>
         where T: Send + Unpin + for<'r> FromRow<'r, PgRow>
     {
         match query.fetch_one(self.pool()).await {
             Ok(t) => Ok(Box::new(t)),
             Err(e) => match e {
-                sqlx::Error::RowNotFound => Err(error::DalError::DataNotFound(e.to_string())),
-                _ => Err(error::DalError::DataGenericError(e)),
+                sqlx::Error::RowNotFound => Err(DalError::DataNotFound(e.to_string())),
+                _ => Err(DalError::DataGenericError(e)),
             },
         }
     }
 }
 
 #[async_trait]
-impl CommandContext<Postgres> for PgPool {
-    async fn execute<'q>(&self, query: Query<'q, Postgres, PgArguments>) -> Result<(), error::DalError> {
+impl CommandContext<Postgres> for PgDao {
+    async fn execute<'q>(&self, query: Query<'q, Postgres, PgArguments>) -> Result<(), DalError> {
         match query.execute(self.pool()).await {
             Ok(_) => Ok(()),
-            Err(e) => Err(error::DalError::DataCreation(e)),
+            Err(e) => Err(DalError::DataCreation(e)),
         }
     }
 }

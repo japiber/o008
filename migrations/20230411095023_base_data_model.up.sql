@@ -51,22 +51,25 @@ CREATE TABLE IF NOT EXISTS service
 
 SELECT audit.audit_table('public.service');
 
+CREATE TYPE reporeferencekind AS ENUM ('Tag', 'Branch', 'Commit');
+
 CREATE TABLE IF NOT EXISTS repo_reference
 (
     id         uuid              NOT NULL,
     repo       character varying NOT NULL,
-    kind       character varying NOT NULL,
+    kind       reporeferencekind NOT NULL,
     reference  character varying NOT NULL,
-    CONSTRAINT repo_reference_pkey PRIMARY KEY (id)
+    CONSTRAINT repo_reference_pkey PRIMARY KEY (id),
+    CONSTRAINT repo_kind_reference_key UNIQUE (repo, kind, reference)
 );
 
 SELECT audit.audit_table('public.repo_reference');
+
 
 CREATE TABLE IF NOT EXISTS service_version
 (
     id         uuid              NOT NULL,
     version    character varying NOT NULL,
-    is_release boolean           NOT NULL,
     service    uuid              NOT NULL,
     repo_ref   uuid              NOT NULL,
     builder    uuid              NOT NULL,

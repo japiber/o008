@@ -4,7 +4,7 @@ use serde_json::Value;
 use sqlx::Postgres;
 use uuid::Uuid;
 use crate::{CommandContext, DalError, DaoCommand, DaoQuery, QueryContext, DalCount, gen_v7_uuid};
-use crate::pg::{hard_check_key, PgPool, Tenant};
+use crate::pg::{hard_check_key, PgDao, Tenant};
 
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, sqlx::FromRow)]
@@ -49,7 +49,7 @@ impl Application {
 }
 
 #[async_trait]
-impl DaoQuery<PgPool, Postgres> for Application {
+impl DaoQuery<PgDao, Postgres> for Application {
     async fn read(key: Value) -> Result<Box<Self>, DalError> {
         match hard_check_key(&key, &["id"]) {
             Ok(id_key) => {
@@ -73,7 +73,7 @@ impl DaoQuery<PgPool, Postgres> for Application {
                         Err(DalError::DataNotFound(format!("tenant {}", tenant_qry)))
                     }
                 },
-                Err(e) => Err(e)
+                Err(e) => Err(DalError::InvalidKey(format!("application dao read {}", e)))
             }
         }
     }
@@ -85,24 +85,27 @@ impl DaoQuery<PgPool, Postgres> for Application {
                 sqlx::query_as::<_, DalCount>("SELECT COUNT(*) AS count FROM application WHERE id=$1")
                     .bind(Uuid::parse_str(id.as_str().unwrap()).unwrap())
             ).await;
-            return r.unwrap().count > 0
+            r.unwrap().count > 0
         } else if let Ok(name_tenant_key) = hard_check_key(&key, &["name", "tenant"]) {
             let (name, tenant_qry) = (name_tenant_key.get(0).unwrap(), name_tenant_key.get(1).unwrap());
             if let Ok(tenant) = Tenant::read(tenant_qry.clone()).await {
                 let r = Self::query_ctx().await.fetch_one(
-                    sqlx::query_as::<_, DalCount>("SELECT COUNT(*)WHERE name=$1 AND tenant=$2")
+                    sqlx::query_as::<_, DalCount>("SELECT COUNT(*) WHERE name=$1 AND tenant=$2")
                         .bind(name.as_str().unwrap())
                         .bind(tenant.id())
                 ).await;
-                return r.unwrap().count > 0
+                r.unwrap().count > 0
+            } else {
+                false
             }
+        } else {
+            false
         }
-        false
     }
 }
 
 #[async_trait]
-impl DaoCommand<PgPool, Postgres> for Application {
+impl DaoCommand<PgDao, Postgres> for Application {
     async fn insert(&self) -> Result<(), DalError> {
         let cx = Self::command_ctx().await;
         cx.execute(

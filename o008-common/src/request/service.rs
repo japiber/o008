@@ -1,6 +1,6 @@
 use std::str::FromStr;
 use serde::{Deserialize, Serialize};
-use crate::{ApplicationRequest, RequestValidator, TenantRequest};
+use crate::{ApplicationRequest, RequestValidator, TypeInfo};
 use crate::request::{RequestValidatorError, RequestValidatorResult};
 use utoipa::ToSchema;
 
@@ -22,18 +22,11 @@ impl ServiceRequest {
     }
 
     pub fn build_get_request(name: String, application: String, tenant: String) -> Self {
-        Self::new(
-            Some(name),
-                Some(
-                    ApplicationRequest::new(
-                        Some(application),
-                        Some(TenantRequest::new(Some(tenant), None)),
-                        None,
-                        None
-                    )
-                ),
-            None
-        )
+        Self {
+            name: Some(name),
+            application: Some(ApplicationRequest::build_get_request(application, tenant)),
+            default_repo: None
+        }
     }
 
     pub fn name(&self) -> Option<String> {
@@ -52,38 +45,43 @@ impl ServiceRequest {
 impl RequestValidator for ServiceRequest {
     fn is_valid_create(&self) -> RequestValidatorResult {
         match (
-            self.name.is_some(),
-            self.application.as_ref().is_some(),
-            self.default_repo.is_some()
-        ) {
-            (false, _, _) => Err(RequestValidatorError::MissingAttribute("name".to_string())),
-            (_, false, _) => Err(RequestValidatorError::MissingAttribute("application".to_string())),
-            (_, _, false) => Err(RequestValidatorError::MissingAttribute("default_repo".to_string())),
-            (true, true, true) => self.application.as_ref().unwrap().is_valid_get()
+            self.name.as_ref(),
+            self.application.as_ref(),
+            self.default_repo.as_ref()) {
+            (Some(_), Some(app), Some(_)) => app.is_valid_get(),
+            (_, _, _) => Err(RequestValidatorError::MissingAttribute(format!("{} all attributes are mandatory", self.type_of())))
         }
     }
 
     fn is_valid_get(&self) -> RequestValidatorResult {
-        match (
-            self.name.is_some(),
-            self.application.as_ref().is_some()
-        ) {
-            (false, _) => Err(RequestValidatorError::MissingAttribute("name".to_string())),
-            (_, false) => Err(RequestValidatorError::MissingAttribute("application".to_string())),
-            (true, true) => self.application.as_ref().unwrap().is_valid_get()
+        match (self.name.as_ref(), self.application.as_ref()) {
+            (Some(_), Some(app)) => app.is_valid_get(),
+            (_,  _) => Err(RequestValidatorError::MissingAttribute(format!("{} name and application are mandatory", self.type_of())))
         }
     }
 
     fn is_valid_update(&self) -> RequestValidatorResult {
         match (
-            self.name.is_some(),
-            self.application.as_ref().is_some(),
-            self.default_repo.is_some()
+            self.name.as_ref(),
+            self.application.as_ref(),
+            self.default_repo.as_ref()
         ) {
-            (false, false, false) => Err(RequestValidatorError::AtLeastOneRequired),
-            (_, true, _) => self.application.as_ref().unwrap().is_valid_get(),
-            (_, _, _) => Ok(()),
+            (None, None, None) => Err(RequestValidatorError::MissingAttribute(format!("{} at least one is mandatory", self.type_of()))),
+            (_, Some(app), _) => app.is_valid_get(),
+            (_, None, _) => Ok(()),
         }
+    }
+}
+
+const SERVICE_REQUEST_TYPE_NAME: &str = "ServiceRequest";
+
+impl TypeInfo for ServiceRequest {
+    fn type_name() -> &'static str {
+        SERVICE_REQUEST_TYPE_NAME
+    }
+
+    fn type_of(&self) -> &'static str {
+        SERVICE_REQUEST_TYPE_NAME
     }
 }
 

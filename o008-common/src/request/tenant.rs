@@ -1,7 +1,7 @@
 use std::str::FromStr;
 use serde::{Deserialize, Serialize};
 use crate::request::{RequestValidatorError, RequestValidatorResult};
-use crate::RequestValidator;
+use crate::{RequestValidator, TypeInfo};
 use utoipa::ToSchema;
 
 #[serde_with::skip_serializing_none]
@@ -26,36 +26,55 @@ impl TenantRequest {
     pub fn coexisting(&self) -> bool {
         *self.coexisting.as_ref().unwrap()
     }
+
+    pub fn build_get_request(name: String) -> Self {
+        Self {
+            name: Some(name),
+            coexisting: None
+        }
+    }
 }
 
 impl RequestValidator for TenantRequest {
     fn is_valid_create(&self) -> RequestValidatorResult {
         match (
-            self.name.is_some(),
-            self.coexisting.is_some()
+            self.name.as_ref(),
+            self.coexisting
         ) {
-            (false, _) => Err(RequestValidatorError::MissingAttribute("name".to_string())),
-            (_, false) => Err(RequestValidatorError::MissingAttribute("coexisting".to_string())),
-            (true, true) => Ok(()),
+            (Some(_), Some(_)) => Ok(()),
+            (_, _) => Err(RequestValidatorError::MissingAttribute(format!("{} all attributes are mandatory", self.type_of()))),
+
         }
     }
 
     fn is_valid_get(&self) -> RequestValidatorResult {
-        if self.name.is_some() {
+        if let Some(_) = self.name.as_ref() {
             Ok(())
         } else {
-            Err(RequestValidatorError::MissingAttribute("name".to_string()))
+            Err(RequestValidatorError::MissingAttribute(format!("{} name attribute is mandatory", self.type_of())))
         }
     }
 
     fn is_valid_update(&self) -> RequestValidatorResult {
         match (
-            self.name.is_some(),
-            self.coexisting.is_some()
+            self.name.as_ref(),
+            self.coexisting
         ) {
-            (false, false) => Err(RequestValidatorError::AtLeastOneRequired),
-            (_, _) => Ok(()),
+            (Some(_), Some(_)) => Ok(()),
+            (_, _) => Err(RequestValidatorError::MissingAttribute(format!("{} at least one attribute is mandatory", self.type_of()))),
         }
+    }
+}
+
+const TENANT_REQUEST_TYPE_INFO: &str = "TenantRequest";
+
+impl TypeInfo for TenantRequest {
+    fn type_name() -> &'static str {
+        TENANT_REQUEST_TYPE_INFO
+    }
+
+    fn type_of(&self) -> &'static str {
+        TENANT_REQUEST_TYPE_INFO
     }
 }
 

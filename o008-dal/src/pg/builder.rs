@@ -4,7 +4,7 @@ use serde_json::Value;
 use sqlx::Postgres;
 use uuid::Uuid;
 use crate::{QueryContext, error, CommandContext, DaoQuery, DaoCommand, DalCount, gen_v7_uuid};
-use crate::pg::{hard_check_key, PgPool, soft_check_key};
+use crate::pg::{hard_check_key, PgDao, soft_check_key};
 
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, sqlx::FromRow)]
@@ -43,7 +43,7 @@ impl Builder {
 }
 
 #[async_trait]
-impl DaoQuery<PgPool, Postgres> for Builder {
+impl DaoQuery<PgDao, Postgres> for Builder {
     async fn read(key: Value) -> Result<Box<Self>, error::DalError> {
         let id_key = soft_check_key(&key, &["id"])?;
         return if let Some(id) = id_key.first().unwrap() {
@@ -82,7 +82,7 @@ impl DaoQuery<PgPool, Postgres> for Builder {
 }
 
 #[async_trait]
-impl DaoCommand<PgPool, Postgres> for Builder {
+impl DaoCommand<PgDao, Postgres> for Builder {
     async fn insert(&self) -> Result<(), error::DalError> {
         let cx = Self::command_ctx().await;
         cx.execute(

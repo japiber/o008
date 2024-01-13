@@ -26,7 +26,7 @@ use crate::handler::dispatch_error_into_response;
         ("tenant" = String, Path, description = "Service tenant name"),
     )
 )]
-pub async fn get_service(Path((name, application, tenant)): Path<(String, String, String)>) -> impl IntoResponse {
+pub async fn service_get(Path((name, application, tenant)): Path<(String, String, String)>) -> impl IntoResponse {
 
     let req = ServiceRequest::build_get_request(name, application, tenant);
     let msg = DispatchMessage::send(DispatchCommand::from(AppCommand::GetService { value: req }));
@@ -53,8 +53,8 @@ pub async fn get_service(Path((name, application, tenant)): Path<(String, String
         ("tenant" = String, Path, description = "Service tenant name"),
     )
 )]
-pub async fn create_or_update(Path((name, application, tenant)): Path<(String, String, String)>,
-                              Json(payload) : Json<ServiceRequest>) -> impl IntoResponse {
+pub async fn service_put(Path((name, application, tenant)): Path<(String, String, String)>,
+                         Json(payload) : Json<ServiceRequest>) -> impl IntoResponse {
     let req = ServiceRequest::build_get_request(name, application, tenant);
     let msg = if Service::persisted(to_value(req.clone()).unwrap()).await {
         DispatchMessage::send(DispatchCommand::from(AppCommand::UpdateService { source: req.clone(), value: payload }))

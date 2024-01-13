@@ -17,3 +17,4 @@ serde_json = "1.0"
 serde_with = "3.4"
 async-trait = "0.1"
 utoipa = { features = ["uuid", "chrono"], version = "4.1" }
+sqlx = { version = "0.7", features = ["macros"] }

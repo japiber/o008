@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use o008_common::{AppCommand, DispatcherError, InternalCommand};
 use o008_common::InternalCommandError::Terminate;
-use o008_action::{application, builder, service, tenant};
+use o008_action::{application, builder, service, service_version, tenant};
 use crate::{AsyncDispatcher, DispatchCommand, DispatchMessage, DispatchResult};
 
 
@@ -20,6 +20,7 @@ impl AsyncDispatcher<serde_json::Value> for AppCommand {
             AppCommand::CreateService { value } => service::create(value).await,
             AppCommand::UpdateService { source, value} => service::update(source, value).await,
             AppCommand::GetService { value } => service::get(value).await,
+            AppCommand::CreateServiceVersion { value } => service_version::create(value).await,
         }
     }
 }

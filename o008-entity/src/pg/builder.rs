@@ -7,7 +7,7 @@ use uuid::Uuid;
 use o008_dal::{DalError, DaoCommand, DaoQuery};
 use crate::{DestroyEntity, Entity, EntityError, PersistEntity, QueryEntity};
 use o008_common::{AsyncFrom, BuilderRequest};
-use o008_dal::pg::{PgPool};
+use o008_dal::pg::{PgDao};
 
 type BuilderDao = o008_dal::pg::Builder;
 
@@ -64,7 +64,7 @@ impl Entity<BuilderDao> for Builder {
 }
 
 #[async_trait]
-impl QueryEntity<BuilderDao, PgPool, Postgres> for Builder {
+impl QueryEntity<BuilderDao, PgDao, Postgres> for Builder {
     async fn read(qry: Value) -> Result<Box<Self>, EntityError> {
         match BuilderDao::read(qry).await {
             Ok(b) => Ok(Box::new(From::<BuilderDao>::from(*b))),
@@ -81,7 +81,7 @@ impl QueryEntity<BuilderDao, PgPool, Postgres> for Builder {
 }
 
 #[async_trait]
-impl PersistEntity<BuilderDao, PgPool, Postgres> for Builder {
+impl PersistEntity<BuilderDao, PgDao, Postgres> for Builder {
     async fn persist(&self) -> Result<Box<Self>, EntityError> {
         let dao = self.dao();
         let r = if self.id.is_nil() {
@@ -104,7 +104,7 @@ impl PersistEntity<BuilderDao, PgPool, Postgres> for Builder {
 }
 
 #[async_trait]
-impl DestroyEntity<BuilderDao, PgPool, Postgres> for Builder {
+impl DestroyEntity<BuilderDao, PgDao, Postgres> for Builder {
     async fn destroy(&self) -> Result<(), EntityError> {
         if self.id.is_nil() {
             Err(EntityError::UnPersisted(String::from("builder")))
