@@ -1,6 +1,6 @@
 use std::str::FromStr;
 use serde::{Deserialize, Serialize};
-use crate::{RequestValidator, TenantRequest};
+use crate::{RequestValidator, TenantRequest, TypeInfo};
 use crate::request::{RequestValidatorError, RequestValidatorResult};
 use utoipa::ToSchema;
 
@@ -23,61 +23,78 @@ impl ApplicationRequest {
         }
     }
 
-    pub fn name(&self) -> &str {
-        self.name.as_ref().unwrap().as_str()
+    pub fn name(&self) -> Option<&String> {
+        self.name.as_ref()
     }
 
-    pub fn tenant(&self) -> TenantRequest {
-        self.tenant.as_ref().unwrap().clone()
+    pub fn tenant(&self) -> Option<&TenantRequest> {
+        self.tenant.as_ref()
     }
 
-    pub fn class_unit(&self) -> &str {
-        self.class_unit.as_ref().unwrap().as_str()
+    pub fn class_unit(&self) -> Option<&String> {
+        self.class_unit.as_ref()
     }
 
-    pub fn functional_group(&self) -> &str {
-        self.functional_group.as_ref().unwrap().as_str()
+    pub fn functional_group(&self) -> Option<&String> {
+        self.functional_group.as_ref()
+    }
+
+    pub fn build_get_request(name: String, tenant: String) -> Self {
+        Self {
+            name: Some(name),
+            tenant: Some(TenantRequest::build_get_request(tenant)),
+            class_unit: None,
+            functional_group: None,
+        }
     }
 }
 
 impl RequestValidator for ApplicationRequest {
     fn is_valid_create(&self) -> RequestValidatorResult {
         match (
-            self.name.is_some(),
-            self.tenant.as_ref().is_some(),
-            self.class_unit.is_some(),
-            self.functional_group.is_some()
+            self.name.as_ref(),
+            self.tenant.as_ref(),
+            self.class_unit.as_ref(),
+            self.functional_group.as_ref()
         ) {
-            (false, _, _, _) => Err(RequestValidatorError::MissingAttribute("name".to_string())),
-            (_, false, _, _) => Err(RequestValidatorError::MissingAttribute("tenant".to_string())),
-            (_, _, false, _) => Err(RequestValidatorError::MissingAttribute("class_unit".to_string())),
-            (_, _, _, false) => Err(RequestValidatorError::MissingAttribute("functional_group".to_string())),
-            (true, true, true, true) => self.tenant.as_ref().unwrap().is_valid_get(),
+            (Some(_), Some(tenant), Some(_), Some(_)) => tenant.is_valid_get(),
+            (_, _, _, _) => Err(RequestValidatorError::MissingAttribute(format!("{} all attributes are mandatory", self.type_of()))),
         }
     }
 
     fn is_valid_get(&self) -> RequestValidatorResult {
         match (
-            self.name.is_some(),
-            self.tenant.as_ref().is_some()
+            self.name.as_ref(),
+            self.tenant.as_ref()
         ) {
-            (false, _) => Err(RequestValidatorError::MissingAttribute("name".to_string())),
-            (_, false) => Err(RequestValidatorError::MissingAttribute("tenant".to_string())),
-            (true, true) => self.tenant.as_ref().unwrap().is_valid_get(),
+            (Some(_), Some(tenant)) => tenant.is_valid_get(),
+            (_, _) => Err(RequestValidatorError::MissingAttribute(format!("{} name and tenant are mandatory", self.type_of()))),
         }
     }
 
     fn is_valid_update(&self) -> RequestValidatorResult {
         match (
-            self.name.is_some(),
-            self.tenant.as_ref().is_some(),
-            self.class_unit.is_some(),
-            self.functional_group.is_some()
+            self.name.as_ref(),
+            self.tenant.as_ref(),
+            self.class_unit.as_ref(),
+            self.functional_group.as_ref()
         ) {
-            (false, false, false, false) => Err(RequestValidatorError::AtLeastOneRequired),
-            (_, true, _, _) => self.tenant.as_ref().unwrap().is_valid_get(),
-            (_, _, _, _) => Ok(())
+            (None, None, None, None) => Err(RequestValidatorError::MissingAttribute(format!("{} at least one attribute is mandatory", self.type_of()))),
+            (_, Some(tenant), _, _) => tenant.is_valid_get(),
+            (_, None, _, _) => Ok(())
         }
+    }
+}
+
+const APPLICATION_REQUEST_TYPE_INFO: &str = "ApplicationRequest";
+
+impl TypeInfo for ApplicationRequest {
+    fn type_name() -> &'static str {
+        APPLICATION_REQUEST_TYPE_INFO
+    }
+
+    fn type_of(&self) -> &'static str {
+        APPLICATION_REQUEST_TYPE_INFO
     }
 }
 

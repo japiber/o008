@@ -4,12 +4,14 @@ pub(crate) mod tenant;
 pub(crate) mod builder;
 pub(crate) mod application;
 pub(crate) mod service;
+pub(crate) mod repo_reference;
+pub(crate) mod repo_reference_kind;
+pub(crate) mod service_version;
 
 pub enum RequestValidatorError {
     MissingAttribute(String),
     InvalidFormat(String),
     InvalidType(String),
-    AtLeastOneRequired,
 }
 
 impl Display for RequestValidatorError {
@@ -18,7 +20,6 @@ impl Display for RequestValidatorError {
             RequestValidatorError::MissingAttribute(s) => write!(f, "missing attribute: {}", s),
             RequestValidatorError::InvalidFormat(s) => write!(f, "invalid format attribute: {}", s),
             RequestValidatorError::InvalidType(s) => write!(f, "invalid type attribute: {}", s),
-            RequestValidatorError::AtLeastOneRequired => write!(f, "at least one attribute is required"),
         }
     }
 }

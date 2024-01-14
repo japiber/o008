@@ -6,7 +6,7 @@ use utoipa::ToSchema;
 use uuid::Uuid;
 use o008_common::{AsyncFrom, TenantRequest};
 use o008_dal::{DalError, DaoCommand, DaoQuery};
-use o008_dal::pg::{ PgPool};
+use o008_dal::pg::{PgDao};
 use crate::{DestroyEntity, Entity, EntityError, PersistEntity, QueryEntity};
 
 pub type TenantDao = o008_dal::pg::Tenant;
@@ -52,16 +52,12 @@ impl Tenant {
 
 impl Entity<TenantDao> for Tenant {
     fn dao(&self) -> Box<TenantDao> {
-        if self.id.is_nil() {
-            Box::new(TenantDao::new(Uuid::new_v4(), &self.name, self.coexisting))
-        } else {
-            Box::new(TenantDao::new(self.id, &self.name, self.coexisting))
-        }
+        Box::new(TenantDao::new(self.id, &self.name, self.coexisting))
     }
 }
 
 #[async_trait]
-impl QueryEntity<TenantDao, PgPool, Postgres> for Tenant {
+impl QueryEntity<TenantDao, PgDao, Postgres> for Tenant {
     async fn read(qry: Value) -> Result<Box<Self>, EntityError> {
         match TenantDao::read(qry).await {
             Ok(bt) => Ok(Box::new(From::<TenantDao>::from(*bt))),
@@ -78,7 +74,7 @@ impl QueryEntity<TenantDao, PgPool, Postgres> for Tenant {
 }
 
 #[async_trait]
-impl PersistEntity<TenantDao, PgPool, Postgres> for Tenant {
+impl PersistEntity<TenantDao, PgDao, Postgres> for Tenant {
     async fn persist(&self) -> Result<Box<Self>, EntityError> {
         let dao = self.dao();
         let r = if self.id.is_nil() {
@@ -100,7 +96,7 @@ impl PersistEntity<TenantDao, PgPool, Postgres> for Tenant {
 }
 
 #[async_trait]
-impl DestroyEntity<TenantDao, PgPool, Postgres> for Tenant {
+impl DestroyEntity<TenantDao, PgDao, Postgres> for Tenant {
     async fn destroy(&self) -> Result<(), EntityError> {
         if self.id.is_nil() {
             Err(EntityError::UnPersisted(String::from("tenant")))

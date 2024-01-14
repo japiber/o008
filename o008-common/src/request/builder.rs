@@ -2,6 +2,7 @@ use std::str::FromStr;
 use serde::{Deserialize, Serialize};
 use crate::request::{RequestValidator, RequestValidatorError, RequestValidatorResult};
 use utoipa::ToSchema;
+use crate::TypeInfo;
 
 #[serde_with::skip_serializing_none]
 #[derive(Serialize, Deserialize, Debug, Clone, Default, ToSchema)]
@@ -28,14 +29,12 @@ impl BuilderRequest {
 impl RequestValidator for BuilderRequest {
     fn is_valid_create(&self) -> RequestValidatorResult {
         match (
-            self.name.is_some(),
-            self.active.is_some(),
-            self.build_command.is_some()
+            self.name.as_ref(),
+            self.active,
+            self.build_command.as_ref()
         ) {
-            (false, _, _) => Err(RequestValidatorError::MissingAttribute("name".to_string())),
-            (_, false, _) => Err(RequestValidatorError::MissingAttribute("active".to_string())),
-            (_, _, false) => Err(RequestValidatorError::MissingAttribute("build_command".to_string())),
-            (true, true, true) => Ok(()),
+            (Some(_), Some(_), Some(_)) => Ok(()),
+            (_, _, _) => Err(RequestValidatorError::MissingAttribute(format!("{} all attributes are mandatory", self.type_of()))),
         }
     }
 
@@ -43,19 +42,31 @@ impl RequestValidator for BuilderRequest {
         if self.name.is_some() {
             Ok(())
         } else {
-            Err(RequestValidatorError::MissingAttribute("name".to_string()))
+            Err(RequestValidatorError::MissingAttribute(format!("{} name attribute is mandatory", self.type_of())))
         }
     }
 
     fn is_valid_update(&self) -> RequestValidatorResult {
         match (
-            self.name.is_some(),
-            self.active.is_some(),
-            self.build_command.is_some()
+            self.name.as_ref(),
+            self.active,
+            self.build_command.as_ref()
         ) {
-            (false, false, false) => Err(RequestValidatorError::AtLeastOneRequired),
+            (None, None, None) => Err(RequestValidatorError::MissingAttribute(format!("{} at least one attribute is mandatory", self.type_of()))),
             (_, _, _) => Ok(())
         }
+    }
+}
+
+const BUILDER_REQUEST_TYPE_INFO: &str = "BuilderRequest";
+
+impl TypeInfo for BuilderRequest {
+    fn type_name() -> &'static str {
+        BUILDER_REQUEST_TYPE_INFO
+    }
+
+    fn type_of(&self) -> &'static str {
+        BUILDER_REQUEST_TYPE_INFO
     }
 }
 

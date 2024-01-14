@@ -9,11 +9,11 @@ use crate::pg::Application;
 use crate::pg::application::ApplicationDao;
 use utoipa::ToSchema;
 use o008_common::{AsyncFrom, ServiceRequest};
-use o008_dal::pg::{PgPool};
+use o008_dal::pg::{PgDao};
 
 type ServiceDao = o008_dal::pg::Service;
 
-#[derive(Debug, PartialEq, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ToSchema)]
 pub struct Service {
     #[serde(rename(serialize = "_id", deserialize = "id"))]
     id: Uuid,
@@ -80,16 +80,12 @@ impl Service {
 
 impl Entity<ServiceDao> for Service {
     fn dao(&self) -> Box<ServiceDao> {
-        if self.id.is_nil() {
-            Box::new(ServiceDao::new(Uuid::new_v4(), &self.name, &self.original_name, self.application.id(), &self.default_repo))
-        } else {
-            Box::new(ServiceDao::new(self.id, &self.name, &self.original_name, self.application.id(), &self.default_repo))
-        }
+        Box::new(ServiceDao::new(self.id, &self.name, &self.original_name, self.application.id(), &self.default_repo))
     }
 }
 
 #[async_trait]
-impl QueryEntity<ServiceDao, PgPool, Postgres> for Service {
+impl QueryEntity<ServiceDao, PgDao, Postgres> for Service {
     async fn read(qry: Value) -> Result<Box<Self>, EntityError> {
         match ServiceDao::read(qry).await {
           Ok(app) => Ok(Box::new(AsyncFrom::<ServiceDao>::from(*app).await)),
@@ -106,7 +102,7 @@ impl QueryEntity<ServiceDao, PgPool, Postgres> for Service {
 }
 
 #[async_trait]
-impl PersistEntity<ServiceDao, PgPool, Postgres> for Service {
+impl PersistEntity<ServiceDao, PgDao, Postgres> for Service {
     async fn persist(&self) -> Result<Box<Self>, EntityError> {
         let dao = self.dao();
         let r = if self.id.is_nil() {
@@ -130,7 +126,7 @@ impl PersistEntity<ServiceDao, PgPool, Postgres> for Service {
 }
 
 #[async_trait]
-impl DestroyEntity<ServiceDao, PgPool, Postgres> for Service {
+impl DestroyEntity<ServiceDao, PgDao, Postgres> for Service {
     async fn destroy(&self) -> Result<(), EntityError> {
         if self.id.is_nil() {
             Err(EntityError::UnPersisted(String::from("service")))
@@ -143,7 +139,7 @@ impl DestroyEntity<ServiceDao, PgPool, Postgres> for Service {
     }
 }
 
-#[async_trait::async_trait]
+#[async_trait]
 impl AsyncFrom<ServiceDao> for Service {
     async fn from(value: ServiceDao) -> Self {
         let app = ApplicationDao::read(json!({"id": value.application().to_string()})).await.unwrap();
@@ -151,7 +147,7 @@ impl AsyncFrom<ServiceDao> for Service {
     }
 }
 
-#[async_trait::async_trait]
+#[async_trait]
 impl AsyncFrom<ServiceRequest> for Service {
     async fn from(value: ServiceRequest) -> Self {
         let srv = ServiceDao::read(serde_json::to_value(value).unwrap()).await.unwrap();

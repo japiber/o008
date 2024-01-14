@@ -6,9 +6,10 @@ members = [
     "o008-setting",
     "o008-dal",
     "o008-entity",
+    "o008-action",
     "o008-dispatcher",
     "o008-cli",
-    "o008-api",
+    "o008-api", "o008-action",
 ]
 
 [workspace.package]

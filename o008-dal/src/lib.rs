@@ -3,6 +3,8 @@ use serde::{Deserialize, Serialize};
 use sqlx::{Database, FromRow, Pool};
 use sqlx::database::HasArguments;
 use sqlx::query::{Query, QueryAs};
+use uuid::Uuid;
+
 mod error;
 pub mod pg;
 
@@ -53,5 +55,13 @@ pub trait DaoCommand<C, DB>
     async fn insert(&self) -> Result<(), DalError>;
     async fn update(&self) -> Result<(), DalError>;
     async fn delete(&self) -> Result<(), DalError>;
+}
+
+fn gen_v7_uuid(id: Uuid) -> Uuid {
+    if id.is_nil() {
+        Uuid::now_v7()
+    } else {
+        id
+    }
 }
 

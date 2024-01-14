@@ -3,8 +3,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sqlx::Postgres;
 use uuid::Uuid;
-use crate::{QueryContext, error, CommandContext, DaoCommand, DaoQuery, DalCount};
-use crate::pg::{hard_check_key, PgPool, soft_check_key};
+use crate::{QueryContext, error, CommandContext, DaoCommand, DaoQuery, DalCount, gen_v7_uuid};
+use crate::pg::{hard_check_key, PgDao, soft_check_key};
 
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, sqlx::FromRow)]
@@ -17,7 +17,7 @@ pub struct Tenant {
 impl Tenant {
     pub fn new(id: Uuid, name: &str, coexisting: bool) -> Self {
         Self {
-            id,
+            id: gen_v7_uuid(id),
             name: String::from(name),
             coexisting,
         }
@@ -37,7 +37,7 @@ impl Tenant {
 }
 
 #[async_trait]
-impl DaoQuery<PgPool, Postgres> for Tenant {
+impl DaoQuery<PgDao, Postgres> for Tenant {
     async fn read(key: Value) -> Result<Box<Self>, error::DalError> {
         if let Ok(id_key) = hard_check_key(&key, &["id"]) {
             let id = id_key.first().unwrap();
@@ -78,7 +78,7 @@ impl DaoQuery<PgPool, Postgres> for Tenant {
 }
 
 #[async_trait]
-impl DaoCommand<PgPool, Postgres> for Tenant {
+impl DaoCommand<PgDao, Postgres> for Tenant {
 
     async fn insert(&self) -> Result<(), error::DalError> {
         let cx = Self::command_ctx().await;

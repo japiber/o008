@@ -7,8 +7,9 @@ use serde_json::Value;
 use tokio::sync::Mutex;
 use tokio::task;
 use tokio::task::JoinHandle;
+use o008_common::{DispatcherError, InternalCommandError};
 
-use crate::{cmd_dispatch_channel, DispatcherError, DispatchMessage, DispatchResult, InternalCommandError};
+use crate::{cmd_dispatch_channel, DispatchMessage, DispatchResult};
 use crate::dispatcher::dispatch;
 
 const COMMAND_WAIT_MILLIS: u64 = 64;
@@ -43,14 +44,6 @@ impl MessagePoll<Value> for MessageQueue {
             }
             inner.extract_result(msg_id).await.unwrap()
         }).await.expect("message queue poll panics")
-    }
-}
-
-impl MessageQueue {
-    pub fn new() -> Self {
-        Self {
-            inner: Arc::new(Default::default())
-        }
     }
 }
 

@@ -1,5 +1,6 @@
 use clap::Subcommand;
 use crate::{ApplicationRequest, BuilderRequest, ServiceRequest, TenantRequest};
+use crate::request::service_version::ServiceVersionRequest;
 
 #[derive(Subcommand, Debug, Clone)]
 pub enum AppCommand {
@@ -43,5 +44,9 @@ pub enum AppCommand {
     GetService {
         #[arg(short, long)]
         value: ServiceRequest,
+    },
+    CreateServiceVersion {
+        #[arg(short, long)]
+        value: ServiceVersionRequest,
     }
 }
