@@ -7,7 +7,7 @@ use o008_entity::{Application, persist_json, QueryEntity, Tenant};
 use o008_common::error::AppCommandError::{Create, InvalidRequest, InvalidResponse, NotFound};
 use o008_common::error::DispatcherError;
 
-pub async fn create(arq: &ApplicationRequest) -> DispatchResult<Value> {
+pub async fn create(arq: ApplicationRequest) -> DispatchResult<Value> {
     info!("create application {:?}", arq);
     match arq.is_valid_create() {
         Ok(()) => match Tenant::read(to_value(arq.tenant().unwrap()).unwrap()).await {
@@ -25,7 +25,7 @@ pub async fn create(arq: &ApplicationRequest) -> DispatchResult<Value> {
     }
 }
 
-pub async fn get(arq: &ApplicationRequest) -> DispatchResult<Value> {
+pub async fn get(arq: ApplicationRequest) -> DispatchResult<Value> {
     info!("get application {:?}", arq);
     match arq.is_valid_get() {
         Ok(()) => match Application::read(to_value(arq).unwrap()).await {

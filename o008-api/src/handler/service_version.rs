@@ -3,9 +3,9 @@ use axum::http::StatusCode;
 use axum::Json;
 use axum::response::IntoResponse;
 use serde_json::to_value;
-use o008_common::{AppCommand, ServiceVersionCreateRequest, ServiceVersionRequest};
-use o008_dispatcher::{DispatchCommand, DispatchMessage};
+use o008_common::{AppCommand, DispatchCommand, ServiceVersionCreateRequest, ServiceVersionRequest};
 use o008_entity::{QueryEntity, ServiceVersion};
+use o008_message_bus::{launch_response_poll, RequestMessage, send_request};
 use crate::handler::dispatch_error_into_response;
 
 /// Create or Update Service item by service name, application name and tenant name
@@ -32,10 +32,15 @@ pub async fn service_version_put(Path((name, application, tenant, version)): Pat
     if !ServiceVersion::persisted(to_value(&req).unwrap()).await {
         req.set_repo_ref(payload.repo_ref);
         req.set_builder(payload.builder);
-        let msg = DispatchMessage::send(DispatchCommand::from(AppCommand::CreateServiceVersion { value: req }));
-        match msg.poll().await {
-            Ok(srv) => (StatusCode::OK, Json(srv)).into_response(),
-            Err(e) => dispatch_error_into_response(e)
+        let msg = RequestMessage::new(DispatchCommand::from(AppCommand::CreateServiceVersion { value: req }));
+        let tr = launch_response_poll(msg.id());
+        send_request(msg);
+        match tr.await.unwrap() {
+            None => (StatusCode::NO_CONTENT, "").into_response(),
+            Some(msg) => match msg.response() {
+                Ok(srv) => (StatusCode::ACCEPTED, Json(srv)).into_response(),
+                Err(e) => dispatch_error_into_response(e)
+            }
         }
     } else {
         (StatusCode::ALREADY_REPORTED, Json(req)).into_response()

@@ -12,7 +12,7 @@ authors.workspace = true
 
 [dependencies]
 o008-setting = { path = "../o008-setting" }
-o008-dispatcher = { path = "../o008-dispatcher" }
+o008-message-bus = { path = "../o008-message-bus" }
 o008-common = { path = "../o008-common" }
 o008-entity = { path = "../o008-entity" }
 tracing = "0.1.40"

@@ -7,7 +7,7 @@ use o008_entity::{Application, persist_json, QueryEntity, Service};
 use o008_common::error::AppCommandError::{Create, InvalidRequest, InvalidResponse, NotFound, Update};
 use o008_common::error::DispatcherError;
 
-pub async fn create(srq: &ServiceRequest) -> DispatchResult<Value> {
+pub async fn create(srq: ServiceRequest) -> DispatchResult<Value> {
     info!("create service {:?}", srq);
     match srq.is_valid_create() {
         Ok(()) => match Application::read(to_value(srq.application()).unwrap()).await {
@@ -22,19 +22,19 @@ pub async fn create(srq: &ServiceRequest) -> DispatchResult<Value> {
     }
 }
 
-pub async fn update(src: &ServiceRequest, value: &ServiceRequest) -> DispatchResult<Value> {
+pub async fn update(src: ServiceRequest, value: ServiceRequest) -> DispatchResult<Value> {
     info!("update service from {:?} to {:?}", src, value);
     match (src.is_valid_get(), value.is_valid_update()) {
         (Ok(()), Ok(())) => match Service::read(to_value(src).unwrap()).await {
             Ok(mut srv) => match value.application() {
                 None => {
-                    srv.update(value, None);
+                    srv.update(&value, None);
                     let r = persist_json(srv).await;
                     r.map_err(|e| DispatcherError::from(Update(format!("update action: {}", e))))
                 }
                 Some(arq) => match Application::read(to_value(arq).unwrap()).await {
                     Ok(app) => {
-                        srv.update(value, Some(*app));
+                        srv.update(&value, Some(*app));
                         let r = persist_json(srv).await;
                         r.map_err(|e| DispatcherError::from(Update(format!("update action: {}", e))))
                     }
@@ -50,7 +50,7 @@ pub async fn update(src: &ServiceRequest, value: &ServiceRequest) -> DispatchRes
 
 
 
-pub async fn get(srq: &ServiceRequest) -> DispatchResult<Value> {
+pub async fn get(srq: ServiceRequest) -> DispatchResult<Value> {
     info!("get service {:?}", srq);
     match srq.is_valid_get() {
         Ok(()) => match Service::read(to_value(srq).unwrap()).await {

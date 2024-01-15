@@ -1,5 +1,4 @@
-use o008_common::{AppCommand, InternalCommand};
-
+use crate::{AppCommand, InternalCommand};
 
 #[derive(Debug, Clone)]
 pub enum DispatchCommand {

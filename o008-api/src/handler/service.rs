@@ -2,11 +2,11 @@ use axum::extract::Path;
 use axum::http::StatusCode;
 use axum::Json;
 use axum::response::IntoResponse;
-use serde_json::to_value;
-use o008_common::{ServiceRequest};
+use serde_json::{to_value};
+use o008_common::{DispatchCommand, ServiceRequest};
 use o008_common::AppCommand;
-use o008_dispatcher::{DispatchCommand, DispatchMessage};
 use o008_entity::{QueryEntity, Service};
+use o008_message_bus::{launch_response_poll, RequestMessage, send_request};
 use crate::handler::dispatch_error_into_response;
 
 
@@ -29,10 +29,16 @@ use crate::handler::dispatch_error_into_response;
 pub async fn service_get(Path((name, application, tenant)): Path<(String, String, String)>) -> impl IntoResponse {
 
     let req = ServiceRequest::build_get_request(name, application, tenant);
-    let msg = DispatchMessage::send(DispatchCommand::from(AppCommand::GetService { value: req }));
-    match msg.poll().await {
-        Ok(srv) => (StatusCode::OK, Json(srv)).into_response(),
-        Err(e) => dispatch_error_into_response(e)
+
+    let msg = RequestMessage::new(DispatchCommand::from(AppCommand::GetService { value: req }));
+    let tr = launch_response_poll(msg.id());
+    send_request(msg);
+    match tr.await.unwrap() {
+        None => (StatusCode::NO_CONTENT, "").into_response(),
+        Some(msg) => match msg.response() {
+            Ok(srv) => (StatusCode::OK, Json(srv)).into_response(),
+            Err(e) => dispatch_error_into_response(e)
+        }
     }
 }
 
@@ -57,12 +63,17 @@ pub async fn service_put(Path((name, application, tenant)): Path<(String, String
                          Json(payload) : Json<ServiceRequest>) -> impl IntoResponse {
     let req = ServiceRequest::build_get_request(name, application, tenant);
     let msg = if Service::persisted(to_value(req.clone()).unwrap()).await {
-        DispatchMessage::send(DispatchCommand::from(AppCommand::UpdateService { source: req.clone(), value: payload }))
+        RequestMessage::new(DispatchCommand::from(AppCommand::UpdateService { source: req.clone(), value: payload }))
     } else {
-        DispatchMessage::send(DispatchCommand::from(AppCommand::CreateService { value: payload }))
+        RequestMessage::new(DispatchCommand::from(AppCommand::CreateService { value: payload }))
     };
-    match msg.poll().await {
-        Ok(srv) => (StatusCode::OK, Json(srv)).into_response(),
-        Err(e) => dispatch_error_into_response(e)
+    let tr = launch_response_poll(msg.id());
+    send_request(msg);
+    match tr.await.unwrap() {
+        None => (StatusCode::NO_CONTENT, "").into_response(),
+        Some(msg) => match msg.response() {
+            Ok(srv) => (StatusCode::ACCEPTED, Json(srv)).into_response(),
+            Err(e) => dispatch_error_into_response(e)
+        }
     }
 }

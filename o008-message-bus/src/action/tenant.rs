@@ -5,7 +5,7 @@ use o008_entity::{persist_json, QueryEntity, Tenant};
 use o008_common::error::AppCommandError::{Create, InvalidRequest, InvalidResponse, NotFound};
 use o008_common::error::DispatcherError;
 
-pub async fn create(trq: &TenantRequest) -> DispatchResult<Value> {
+pub async fn create(trq: TenantRequest) -> DispatchResult<Value> {
     info!("create tenant {:?}", trq);
     match trq.is_valid_create() {
         Ok(()) => {
@@ -17,7 +17,7 @@ pub async fn create(trq: &TenantRequest) -> DispatchResult<Value> {
     }
 }
 
-pub async fn get(trq: &TenantRequest) -> DispatchResult<Value> {
+pub async fn get(trq: TenantRequest) -> DispatchResult<Value> {
     info!("create tenant {:?}", trq);
     match trq.is_valid_get() {
         Ok(()) => match Tenant::read(to_value(trq).unwrap()).await {
