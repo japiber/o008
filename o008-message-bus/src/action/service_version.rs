@@ -5,12 +5,12 @@ use o008_common::AppCommandError::{Create, InvalidRequest, NotFound};
 use o008_entity::{Builder, EntityError, persist_json, PersistEntity, QueryEntity, Service, ServiceVersion};
 use o008_entity::pg::RepoReference;
 
-pub async fn create(svr: &ServiceVersionRequest) -> DispatchResult<Value> {
+pub async fn create(svr: ServiceVersionRequest) -> DispatchResult<Value> {
     info!("create service version {:?}", svr);
     match svr.is_valid_create() {
         Ok(_) => match (Service::read(to_value(svr.service()).unwrap()).await,
                         Builder::read(to_value(svr.builder()).unwrap()).await) {
-            (Ok(service), Ok(builder)) => create_service_version_with_repo_reference(&svr, service, builder).await,
+            (Ok(service), Ok(builder)) => create_service_version_with_repo_reference(svr, service, builder).await,
             (Err(e), _) => Err(DispatcherError::from(NotFound(format!("create action service: {}", e)))),
             (_, Err(e)) => Err(DispatcherError::from(NotFound(format!("create action builder: {}", e)))),
         }
@@ -18,7 +18,7 @@ pub async fn create(svr: &ServiceVersionRequest) -> DispatchResult<Value> {
     }
 }
 
-async fn create_service_version_with_repo_reference(svr: &ServiceVersionRequest, service: Box<Service>, builder: Box<Builder>) -> DispatchResult<Value> {
+async fn create_service_version_with_repo_reference(svr: ServiceVersionRequest, service: Box<Service>, builder: Box<Builder>) -> DispatchResult<Value> {
     match RepoReference::read(to_value(svr.repo_ref()).unwrap()).await {
         Ok(rr) =>
             build_and_persist_service_version(

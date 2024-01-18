@@ -17,6 +17,5 @@ async fn main() {
     // run our app with hyper, listening globally on port 3000
     let listener = tokio::net::TcpListener::bind(app_config().deployment_api().address()).await.unwrap();
     info!("listening on: {}", listener.local_addr().unwrap());
-
-    axum::serve(listener, app).await.unwrap();
+    axum::serve(listener, app).await.unwrap()
 }
