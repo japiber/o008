@@ -5,8 +5,8 @@ use axum::response::IntoResponse;
 use serde_json::to_value;
 use o008_common::{AppCommand, DispatchCommand, ServiceVersionCreateRequest, ServiceVersionRequest};
 use o008_entity::{QueryEntity, ServiceVersion};
-use o008_message_bus::{launch_response_poll, RequestMessage, send_request};
-use crate::handler::dispatch_error_into_response;
+use o008_message_bus::{RequestMessage};
+use crate::handler::{message_into_response};
 
 /// Create or Update Service item by service name, application name and tenant name
 ///
@@ -33,15 +33,7 @@ pub async fn service_version_put(Path((name, application, tenant, version)): Pat
         req.set_repo_ref(payload.repo_ref);
         req.set_builder(payload.builder);
         let msg = RequestMessage::new(DispatchCommand::from(AppCommand::CreateServiceVersion { value: req }));
-        let tr = launch_response_poll(msg.id());
-        send_request(msg);
-        match tr.await.unwrap() {
-            None => (StatusCode::NO_CONTENT, "").into_response(),
-            Some(msg) => match msg.response() {
-                Ok(srv) => (StatusCode::ACCEPTED, Json(srv)).into_response(),
-                Err(e) => dispatch_error_into_response(e)
-            }
-        }
+        message_into_response(msg, StatusCode::ACCEPTED).await
     } else {
         (StatusCode::ALREADY_REPORTED, Json(req)).into_response()
     }

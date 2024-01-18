@@ -1,4 +1,4 @@
-use crate::{AppCommand, InternalCommand};
+use crate::{AppCommand, DispatchResult, InternalCommand};
 
 #[derive(Debug, Clone)]
 pub enum DispatchCommand {
@@ -8,12 +8,30 @@ pub enum DispatchCommand {
 
 impl From<AppCommand> for DispatchCommand {
     fn from(value: AppCommand) -> Self {
-        DispatchCommand::App(Box::new(value))
+        Self::App(Box::new(value))
     }
 }
 
 impl From<InternalCommand> for DispatchCommand {
     fn from(value: InternalCommand) -> Self {
-        DispatchCommand::Internal(value)
+        Self::Internal(value)
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum DispatchResponse<T> {
+    App(Box<DispatchResult<T>>),
+    Internal(InternalCommand)
+}
+
+impl<T> From<DispatchResult<T>> for DispatchResponse<T> {
+    fn from(value: DispatchResult<T>) -> Self {
+        Self::App(Box::new(value))
+    }
+}
+
+impl<T> From<InternalCommand> for DispatchResponse<T> {
+    fn from(value: InternalCommand) -> Self {
+        Self::Internal(value)
     }
 }

@@ -8,6 +8,7 @@ pub mod error;
 pub use command::AppCommand;
 pub use command::InternalCommand;
 pub use command::DispatchCommand;
+pub use command::DispatchResponse;
 pub use macros::ScopeCall;
 pub use request::application::ApplicationRequest;
 pub use request::builder::BuilderRequest;

@@ -1,7 +1,8 @@
 use std::future::Future;
 use serde_json::Value;
+use tracing::info;
 use uuid::Uuid;
-use o008_common::{AppCommand, DispatchResult};
+use o008_common::{AppCommand, DispatchResponse, DispatchResult};
 use crate::action::{application, builder, service, service_version, tenant};
 use crate::{ResponseMessage, send_response};
 
@@ -28,7 +29,8 @@ async fn response_handler<F, T, R>(from: Uuid, req: R, f: F) -> bool
         R: Send
 {
     let result = f(req).await;
-    let msg = ResponseMessage::new(from, result);
+    info!("response handler action result {:?}", &result);
+    let msg = ResponseMessage::new(from, DispatchResponse::from(result));
     send_response(msg)
 }
 
@@ -40,7 +42,7 @@ async fn response_handler_with_source<F, T, S, R>(from: Uuid, src: S, req: R, f:
         S: Send
 {
     let result = f(src, req).await;
-    let msg = ResponseMessage::new(from, result);
+    let msg = ResponseMessage::new(from, DispatchResponse::from(result));
     send_response(msg)
 }
 

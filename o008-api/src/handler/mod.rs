@@ -1,6 +1,9 @@
 use axum::http::StatusCode;
+use axum::Json;
 use axum::response::{IntoResponse, Response};
+use o008_common::DispatchCommand;
 use o008_common::error::{AppCommandError, DispatcherError, InternalCommandError};
+use o008_message_bus::{bus_processor, RequestMessage};
 
 mod service;
 mod service_version;
@@ -26,7 +29,17 @@ fn dispatch_error_into_response(e: DispatcherError) -> Response {
             },
         DispatcherError::InternalCommand(int_error) =>
             match int_error {
-                InternalCommandError::Terminate(_) => (StatusCode::BAD_REQUEST, "api server is shutting dorn").into_response()
+                InternalCommandError::Terminate(_) => (StatusCode::BAD_REQUEST, "api server is shutting down").into_response()
             }
+    }
+}
+
+async fn message_into_response(msg: RequestMessage<DispatchCommand>, ok_status: StatusCode) -> Response {
+    match bus_processor(msg).await {
+        None => (StatusCode::NO_CONTENT, "").into_response(),
+        Some(result) => match result {
+            Ok(srv) => (ok_status, Json(srv)).into_response(),
+            Err(e) => dispatch_error_into_response(e)
+        }
     }
 }
