@@ -6,6 +6,7 @@ use tokio::time::sleep;
 use tracing::{error, info};
 use uuid::Uuid;
 use o008_common::{DispatchCommand, DispatchResponse, DispatchResult, InternalCommand};
+use o008_setting::app_config;
 use crate::{AppRequestMessage, AppResponseMessage, request_bus, response_bus};
 use crate::dispatch::app_command;
 
@@ -40,18 +41,18 @@ pub async fn bus_processor(msg: AppRequestMessage) -> Option<DispatchResult<Valu
     }
 }
 
-pub fn launch_response_poll(from: Uuid) -> JoinHandle<Option<DispatchResult<Value>>> {
-    let mut res = response_bus().subscribe();
+pub fn launch_response_poll(target: Uuid) -> JoinHandle<Option<DispatchResult<Value>>> {
+    let mut res= response_bus().subscribe();
     tokio::spawn(async move {
         loop {
             match res.try_recv() {
                 Ok(msg) => match msg.response() {
                     DispatchResponse::App(app) =>
-                        if msg.from() == from {
-                            info!("launch_response_poll message accepted");
+                        if msg.from() == target {
+                            info!("target {} response message received", target);
                             break Some(*app)
                         } else {
-                            sleep(Duration::from_millis(32)).await
+                            sleep(Duration::from_millis(app_config().bus().response_wait())).await
                         },
                     DispatchResponse::Internal(e) => match e {
                         InternalCommand::Quit => break None
@@ -59,14 +60,14 @@ pub fn launch_response_poll(from: Uuid) -> JoinHandle<Option<DispatchResult<Valu
                 },
                 Err(e)  => match e {
                     TryRecvError::Closed => break None,
-                    _ => sleep(Duration::from_millis(32)).await
+                    _ => sleep(Duration::from_millis(app_config().bus().response_wait())).await
                 }
             }
         }
     })
 }
 
-pub fn launch_request_poll(requested: Uuid)-> JoinHandle<()>  {
+pub fn launch_request_poll(target: Uuid)-> JoinHandle<()>  {
     let req_bus = request_bus();
     let mut rx = req_bus.subscribe();
     tokio::spawn(async move {
@@ -75,14 +76,14 @@ pub fn launch_request_poll(requested: Uuid)-> JoinHandle<()>  {
                 Ok(msg) =>
                     match msg.request() {
                         DispatchCommand::App(cmd) =>
-                            if msg.id() == requested {
-                                info!("launch_request_poll message accepted");
+                            if msg.id() == target {
+                                info!("target {} request message received", target);
                                 if !app_command::dispatcher(msg.id(), cmd).await {
                                     error!("could not dispatch message: {:?}", msg)
                                 }
                                 break;
                             } else {
-                                sleep(Duration::from_millis(32)).await
+                                sleep(Duration::from_millis(app_config().bus().request_wait())).await
                             },
                         DispatchCommand::Internal(e) => match e {
                             InternalCommand::Quit => break,
@@ -90,7 +91,7 @@ pub fn launch_request_poll(requested: Uuid)-> JoinHandle<()>  {
                     },
                 Err(e) => match e {
                     TryRecvError::Closed => break,
-                    _ => sleep(Duration::from_millis(32)).await
+                    _ => sleep(Duration::from_millis(app_config().bus().request_wait())).await
                 }
             }
         }
