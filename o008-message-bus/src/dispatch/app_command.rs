@@ -1,48 +1,32 @@
-use std::future::Future;
-use serde_json::Value;
-use tracing::info;
 use uuid::Uuid;
-use o008_common::{AppCommand, DispatchResponse, DispatchResult};
+use o008_common::{AppCommand};
 use crate::action::{application, builder, service, service_version, tenant};
-use crate::{ResponseMessage, send_response};
+use crate::dispatch::handler;
+
 
 pub(crate) async fn dispatcher(from : Uuid, cmd: Box<AppCommand>) -> bool {
     match *cmd {
-        AppCommand::CreateBuilder { value } => response_handler(from, value, builder::create).await,
-        AppCommand::GetBuilder { value } => response_handler(from, value, builder::get).await,
-        AppCommand::DeleteBuilder { value } => response_handler(from, value, builder::delete).await,
-        AppCommand::CreateTenant { value } => response_handler(from, value, tenant::create).await,
-        AppCommand::GetTenant { value } => response_handler(from, value, tenant::get).await,
-        AppCommand::CreateApplication { value } => response_handler(from, value, application::create).await,
-        AppCommand::GetApplication { value } => response_handler(from, value, application::get).await,
-        AppCommand::CreateService { value } => response_handler(from, value, service::create).await,
-        AppCommand::UpdateService {source, value } => response_handler_with_source(from, source, value, service::update).await,
-        AppCommand::GetService { value } => response_handler(from, value, service::get).await,
-        AppCommand::CreateServiceVersion { value } => response_handler(from, value, service_version::create).await,
+        AppCommand::CreateBuilder { value } =>
+            handler::request(from, value, builder::create).await,
+        AppCommand::GetBuilder { value } =>
+            handler::request(from, value, builder::get).await,
+        AppCommand::DeleteBuilder { value } =>
+            handler::request(from, value, builder::delete).await,
+        AppCommand::CreateTenant { value } =>
+            handler::request(from, value, tenant::create).await,
+        AppCommand::GetTenant { value } =>
+            handler::request(from, value, tenant::get).await,
+        AppCommand::CreateApplication { value } =>
+            handler::request(from, value, application::create).await,
+        AppCommand::GetApplication { value } =>
+            handler::request(from, value, application::get).await,
+        AppCommand::CreateService { value } =>
+            handler::request(from, value, service::create).await,
+        AppCommand::UpdateService {source, value } =>
+            handler::request_with_source(from, source, value, service::update).await,
+        AppCommand::GetService { value } =>
+            handler::request(from, value, service::get).await,
+        AppCommand::CreateServiceVersion { value } =>
+            handler::request(from, value, service_version::create).await,
     }
 }
-
-async fn response_handler<F, T, R>(from: Uuid, req: R, f: F) -> bool
-    where
-        F: FnOnce(R) -> T,
-        T: Future<Output = DispatchResult<Value>> + Send,
-        R: Send
-{
-    let result = f(req).await;
-    info!("response handler action result {:?}", &result);
-    let msg = ResponseMessage::new(from, DispatchResponse::from(result));
-    send_response(msg)
-}
-
-async fn response_handler_with_source<F, T, S, R>(from: Uuid, src: S, req: R, f: F) -> bool
-    where
-        F: FnOnce(S, R) -> T,
-        T: Future<Output = DispatchResult<Value>> + Send,
-        R: Send,
-        S: Send
-{
-    let result = f(src, req).await;
-    let msg = ResponseMessage::new(from, DispatchResponse::from(result));
-    send_response(msg)
-}
-

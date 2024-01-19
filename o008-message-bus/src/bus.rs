@@ -4,23 +4,23 @@ use tokio::sync::broadcast::error::{SendError};
 
 
 pub struct Bus<T> {
-    tx: Sender<T>
+    tx: Sender<Box<T>>
 }
 
 impl<T: Clone> Bus<T> {
     pub fn new(capacity: usize) -> Self {
-        let (tx, _) = broadcast::channel::<T>(capacity);
+        let (tx, _) = broadcast::channel::<Box<T>>(capacity);
         Self {
             tx,
         }
     }
 
-    pub fn subscribe(&self) -> Receiver<T> {
+    pub fn subscribe(&self) -> Receiver<Box<T>> {
         self.tx.subscribe()
     }
 
-    pub fn send(&self, msg: T) -> Result<usize, SendError<T>> {
-        self.tx.send(msg)
+    pub fn send(&self, msg: T) -> Result<usize, SendError<Box<T>>> {
+        self.tx.send(Box::new(msg))
     }
 }
 

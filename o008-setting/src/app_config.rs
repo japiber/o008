@@ -19,11 +19,11 @@ pub struct Api {
 }
 
 #[derive(Debug, Clone, Deserialize)]
-pub struct RabbitMQ {
-    host: String,
-    port: u32,
-    user: String,
-    password: String
+pub struct Bus {
+    response_capacity: usize,
+    request_capacity: usize,
+    response_wait: u64,
+    request_wait: u64,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -31,7 +31,7 @@ pub struct AppConfig {
     debug: bool,
     database: Option<Database>,
     deployment_api: Option<Api>,
-    rabbit_mq: Option<RabbitMQ>
+    bus: Option<Bus>
 }
 
 impl AppConfig {
@@ -53,8 +53,8 @@ impl AppConfig {
         self.database.clone().expect("database settings not found")
     }
 
-    pub fn rabbit_mq(&self) -> RabbitMQ {
-        self.rabbit_mq.clone().expect("rabbitmq settings not found")
+    pub fn bus(&self) -> Bus {
+        self.bus.clone().expect("bus sttings not found")
     }
 
     pub fn deployment_api(&self) -> Api {
@@ -71,9 +71,21 @@ impl Database {
     }
 }
 
-impl RabbitMQ {
-    pub fn uri(&self) -> String {
-        format!("amqp://{}:{}@{}:{}", self.user, self.password, self.host, self.port)
+impl Bus {
+    pub fn response_capacity(&self) -> usize {
+       self.response_capacity
+    }
+
+    pub fn request_capacity(&self) -> usize {
+        self.request_capacity
+    }
+
+    pub fn response_wait(&self) -> u64 {
+        self.response_wait
+    }
+
+    pub fn request_wait(&self) -> u64 {
+        self.request_wait
     }
 }
 
