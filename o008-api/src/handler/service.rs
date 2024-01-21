@@ -2,10 +2,8 @@ use axum::extract::Path;
 use axum::http::StatusCode;
 use axum::Json;
 use axum::response::IntoResponse;
-use serde_json::{to_value};
 use o008_common::{DispatchCommand, ServiceRequest};
 use o008_common::AppCommand;
-use o008_entity::{QueryEntity, Service};
 use o008_message_bus::{RequestMessage};
 use crate::handler::{message_into_response};
 
@@ -28,7 +26,7 @@ use crate::handler::{message_into_response};
 )]
 pub async fn service_get(Path((name, application, tenant)): Path<(String, String, String)>) -> impl IntoResponse {
     let req = ServiceRequest::build_get_request(name, application, tenant);
-    let msg = RequestMessage::new(DispatchCommand::from(AppCommand::GetService { value: req }));
+    let msg = RequestMessage::new(DispatchCommand::from(AppCommand::GetService { request: req }));
     message_into_response(msg, StatusCode::OK).await
 }
 
@@ -51,11 +49,7 @@ pub async fn service_get(Path((name, application, tenant)): Path<(String, String
 )]
 pub async fn service_put(Path((name, application, tenant)): Path<(String, String, String)>,
                          Json(payload) : Json<ServiceRequest>) -> impl IntoResponse {
-    let req = ServiceRequest::build_get_request(name, application, tenant);
-    let msg = if Service::persisted(to_value(req.clone()).unwrap()).await {
-        RequestMessage::new(DispatchCommand::from(AppCommand::UpdateService { source: req.clone(), value: payload }))
-    } else {
-        RequestMessage::new(DispatchCommand::from(AppCommand::CreateService { value: payload }))
-    };
+    let source = ServiceRequest::build_get_request(name, application, tenant);
+    let msg = RequestMessage::new(DispatchCommand::from(AppCommand::PersistService { source, request: payload }));
     message_into_response(msg, StatusCode::ACCEPTED).await
 }

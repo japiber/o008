@@ -13,12 +13,6 @@ pub struct ServiceVersionRequest {
     builder: Option<BuilderRequest>
 }
 
-#[serde_with::skip_serializing_none]
-#[derive(Serialize, Deserialize, Debug, Clone, Default, ToSchema)]
-pub struct ServiceVersionCreateRequest {
-    pub repo_ref: RepoReferenceRequest,
-    pub builder: BuilderRequest
-}
 
 impl ServiceVersionRequest {
     pub fn new(version: Option<String>, service: Option<ServiceRequest>, repo_ref: Option<RepoReferenceRequest>, builder: Option<BuilderRequest>) -> Self {
@@ -39,28 +33,20 @@ impl ServiceVersionRequest {
         }
     }
 
-    pub fn version(&self) -> Option<&String> {
-        self.version.as_ref()
+    pub fn version(&self) -> Option<String> {
+        self.version.clone()
     }
 
-    pub fn service(&self) -> Option<&ServiceRequest> {
-        self.service.as_ref()
+    pub fn service(&self) -> Option<ServiceRequest> {
+        self.service.clone()
     }
 
-    pub fn repo_ref(&self) -> Option<&RepoReferenceRequest> {
-        self.repo_ref.as_ref()
+    pub fn repo_ref(&self) -> Option<RepoReferenceRequest> {
+        self.repo_ref.clone()
     }
 
-    pub fn builder(&self) -> Option<&BuilderRequest> {
-        self.builder.as_ref()
-    }
-
-    pub fn set_repo_ref(&mut self, rr: RepoReferenceRequest) {
-        self.repo_ref = Some(rr)
-    }
-
-    pub fn set_builder(&mut self, builder: BuilderRequest) {
-        self.builder = Some(builder)
+    pub fn builder(&self) -> Option<BuilderRequest> {
+        self.builder.clone()
     }
 }
 
@@ -127,15 +113,6 @@ impl FromStr for ServiceVersionRequest {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let svr : ServiceVersionRequest = serde_json::from_str(s).map_err(|e| format!("error parsing service version request: {}", e))?;
-        Ok(svr)
-    }
-}
-
-impl FromStr for ServiceVersionCreateRequest {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let svr : ServiceVersionCreateRequest = serde_json::from_str(s).map_err(|e| format!("error parsing service version create request: {}", e))?;
         Ok(svr)
     }
 }

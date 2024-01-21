@@ -6,47 +6,44 @@ use crate::request::service_version::ServiceVersionRequest;
 pub enum AppCommand {
     CreateBuilder {
         #[arg(short, long)]
-        value: BuilderRequest,
+        request: BuilderRequest,
     },
     GetBuilder {
         #[arg(short, long)]
-        value: BuilderRequest,
+        request: BuilderRequest,
     },
     DeleteBuilder {
         #[arg(short, long)]
-        value: BuilderRequest,
+        request: BuilderRequest,
     },
     CreateTenant {
         #[arg(short, long)]
-        value: TenantRequest,
+        request: TenantRequest,
     },
     GetTenant {
         #[arg(short, long)]
-        value: TenantRequest,
+        request: TenantRequest,
     },
     CreateApplication {
         #[arg(short, long)]
-        value: ApplicationRequest,
+        request: ApplicationRequest,
     },
     GetApplication {
         #[arg(short, long)]
-        value: ApplicationRequest,
+        request: ApplicationRequest,
     },
-    CreateService {
-        #[arg(short, long)]
-        value: ServiceRequest,
-    },
-    UpdateService {
+    PersistService {
         #[arg(short, long)]
         source: ServiceRequest,
-        value: ServiceRequest,
+        request: ServiceRequest,
     },
     GetService {
         #[arg(short, long)]
-        value: ServiceRequest,
+        request: ServiceRequest,
     },
-    CreateServiceVersion {
+    PersistServiceVersion {
         #[arg(short, long)]
-        value: ServiceVersionRequest,
+        source: ServiceVersionRequest,
+        request: ServiceVersionRequest,
     }
 }

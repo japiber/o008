@@ -7,13 +7,13 @@ use crate::bus::Bus;
 
 mod bus;
 mod message;
-mod action;
-mod dispatch;
-mod helper;
+
+pub mod helper;
+pub mod handler;
 
 pub use message::request::RequestMessage;
 pub use message::response::ResponseMessage;
-pub use helper::{bus_processor, send_request, send_response, launch_request_poll, launch_response_poll};
+
 use o008_setting::app_config;
 
 type AppRequestMessage = RequestMessage<DispatchCommand>;

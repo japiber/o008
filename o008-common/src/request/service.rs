@@ -40,6 +40,18 @@ impl ServiceRequest {
     pub fn default_repo(&self) -> Option<String> {
         self.default_repo.clone()
     }
+
+    pub fn set_name(&mut self, name: &str) {
+        self.name = Some(String::from(name))
+    }
+
+    pub fn set_application(&mut self, app: ApplicationRequest) {
+        self.application = Some(app)
+    }
+
+    pub fn set_default_repo(&mut self, default_repo: &str) {
+        self.default_repo = Some(String::from(default_repo))
+    }
 }
 
 impl RequestValidator for ServiceRequest {

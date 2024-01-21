@@ -10,7 +10,7 @@ pub async fn create(trq: TenantRequest) -> DispatchResult<Value> {
     match trq.is_valid_create() {
         Ok(()) => {
             let t = Tenant::new(trq.name(), trq.coexisting());
-            let r = persist_json(Box::new(t)).await;
+            let r = persist_json(&t).await;
             r.map_err(|e| DispatcherError::from(Create(format!("{}", e))))
         },
         Err(e) => Err(DispatcherError::from(InvalidRequest(format!("create action: {}", e))))

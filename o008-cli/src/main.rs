@@ -1,7 +1,9 @@
 use tracing::{error, info};
+use o008_business::dispatcher;
 use o008_common::{defer, ScopeCall, DispatchCommand};
 use o008_setting::{app_args, AppLogLevel, initialize_tracing};
-use o008_message_bus::{bus_processor, RequestMessage};
+use o008_message_bus::{RequestMessage};
+use o008_message_bus::helper::bus_processor;
 
 #[tracing::instrument]
 #[tokio::main]
@@ -16,7 +18,7 @@ async fn main() {
 async fn command_dispatcher() {
     if let Some(cmd) = &app_args().command {
         let msg = RequestMessage::new(DispatchCommand::from(cmd.clone()));
-        match bus_processor(msg).await {
+        match bus_processor(msg.clone(), dispatcher::RequestMessageCommand::from(msg)).await {
             None => println!("could not get response for command: {:?}", cmd),
             Some(result) => match result {
                 Ok(v) => println!(">> {}", serde_json::to_string_pretty(&v).unwrap()),
