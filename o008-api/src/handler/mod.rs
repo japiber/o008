@@ -1,13 +1,14 @@
 use axum::http::StatusCode;
 use axum::Json;
 use axum::response::{IntoResponse, Response};
-use o008_common::DispatchCommand;
+use o008_business::dispatcher;
+use o008_common::{DispatchCommand};
 use o008_common::error::{AppCommandError, DispatcherError, InternalCommandError};
-use o008_message_bus::{bus_processor, RequestMessage};
+use o008_message_bus::{RequestMessage};
+use o008_message_bus::helper::bus_processor;
 
 mod service;
 mod service_version;
-
 pub use service::service_get;
 pub use service::service_put;
 pub use service_version::service_version_put;
@@ -35,7 +36,7 @@ fn dispatch_error_into_response(e: DispatcherError) -> Response {
 }
 
 async fn message_into_response(msg: RequestMessage<DispatchCommand>, ok_status: StatusCode) -> Response {
-    match bus_processor(msg).await {
+    match bus_processor(msg.clone(), dispatcher::RequestMessageCommand::from(msg)).await {
         None => (StatusCode::NO_CONTENT, "").into_response(),
         Some(result) => match result {
             Ok(srv) => (ok_status, Json(srv)).into_response(),

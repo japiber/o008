@@ -16,7 +16,7 @@ pub async fn create(arq: ApplicationRequest) -> DispatchResult<Value> {
                 let cu = arq.class_unit().unwrap().as_str();
                 let fg = arq.functional_group().unwrap().as_str();
                 let app = Application::new(name, *tenant, cu, fg);
-                let r = persist_json(Box::new(app)).await;
+                let r = persist_json(&app).await;
                 r.map_err( | e| DispatcherError::from(Create(e.to_string())))
             },
             Err(e) => Err(DispatcherError::from(NotFound(format!("create action: {}", e))))

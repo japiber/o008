@@ -27,7 +27,6 @@ use utoipa_swagger_ui::SwaggerUi;
             o008_common::RepoReferenceRequest,
             o008_common::ServiceRequest,
             o008_common::ServiceVersionRequest,
-            o008_common::ServiceVersionCreateRequest,
         ),
     )
 )]

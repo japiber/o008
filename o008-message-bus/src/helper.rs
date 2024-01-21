@@ -5,10 +5,10 @@ use tokio::task::JoinHandle;
 use tokio::time::sleep;
 use tracing::{error, info};
 use uuid::Uuid;
-use o008_common::{DispatchCommand, DispatchResponse, DispatchResult, InternalCommand};
+use o008_common::{CommandDispatcher, DispatchResponse, DispatchResult, InternalCommand, ResultDispatcher};
 use o008_setting::app_config;
 use crate::{AppRequestMessage, AppResponseMessage, request_bus, response_bus};
-use crate::dispatch::app_command;
+
 
 pub fn send_request(msg: AppRequestMessage) -> bool {
     match request_bus().send(msg) {
@@ -30,8 +30,10 @@ pub fn send_response(msg: AppResponseMessage) -> bool {
     }
 }
 
-pub async fn bus_processor(msg: AppRequestMessage) -> Option<DispatchResult<Value>> {
-    let trq= launch_request_poll(msg.id());
+pub async fn bus_processor<D>(msg: AppRequestMessage, dispatcher: D) -> Option<DispatchResult<Value>>
+    where D: CommandDispatcher + Send + Unpin + Sized + 'static
+{
+    let trq = launch_request_poll(msg.id(), dispatcher);
     let trs= launch_response_poll(msg.id());
     if send_request(msg) {
         trq.await.unwrap();
@@ -67,26 +69,28 @@ pub fn launch_response_poll(target: Uuid) -> JoinHandle<Option<DispatchResult<Va
     })
 }
 
-pub fn launch_request_poll(target: Uuid)-> JoinHandle<()>  {
+pub fn launch_request_poll<D>(target: Uuid, dispatcher: D) -> JoinHandle<()>
+    where D: CommandDispatcher + Send + Unpin + Sized + 'static
+{
     let req_bus = request_bus();
     let mut rx = req_bus.subscribe();
     tokio::spawn(async move {
         loop {
             match rx.try_recv() {
                 Ok(msg) =>
-                    match msg.request() {
-                        DispatchCommand::App(cmd) =>
-                            if msg.id() == target {
-                                info!("target {} request message received", target);
-                                if !app_command::dispatcher(msg.id(), cmd).await {
-                                    error!("could not dispatch message: {:?}", msg)
-                                }
-                                break;
-                            } else {
-                                sleep(Duration::from_millis(app_config().bus().request_wait())).await
-                            },
-                        DispatchCommand::Internal(e) => match e {
-                            InternalCommand::Quit => break,
+                    match dispatcher.dispatch(target).await {
+                        ResultDispatcher::Done(b) => {
+                            info!("target {} request message dispatched", target);
+                            if !b {
+                                error!("could not dispatch message: {:?}", msg)
+                            }
+                            break;
+                        }
+                        ResultDispatcher::Pending => {
+                            sleep(Duration::from_millis(app_config().bus().request_wait())).await;
+                        }
+                        ResultDispatcher::Abort => {
+                            break;
                         }
                     },
                 Err(e) => match e {

@@ -62,6 +62,22 @@ impl ServiceVersion {
     pub fn builder(&self) -> &Builder {
         &self.builder
     }
+
+    pub fn set_service(&mut self, service: Service) {
+        self.service = service
+    }
+
+    pub fn set_repo_ref(&mut self, repo_ref: RepoReference) {
+        self.repo_ref = repo_ref
+    }
+
+    pub fn set_builder(&mut self, builder : Builder) {
+        self.builder = builder
+    }
+
+    pub fn set_version(&mut self, version: &str) {
+        self.version = String::from(version)
+    }
 }
 
 impl Entity<ServiceVersionDao> for ServiceVersion {

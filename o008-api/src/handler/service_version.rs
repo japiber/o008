@@ -2,9 +2,7 @@ use axum::extract::Path;
 use axum::http::StatusCode;
 use axum::Json;
 use axum::response::IntoResponse;
-use serde_json::to_value;
-use o008_common::{AppCommand, DispatchCommand, ServiceVersionCreateRequest, ServiceVersionRequest};
-use o008_entity::{QueryEntity, ServiceVersion};
+use o008_common::{AppCommand, DispatchCommand, ServiceVersionRequest};
 use o008_message_bus::{RequestMessage};
 use crate::handler::{message_into_response};
 
@@ -14,7 +12,7 @@ use crate::handler::{message_into_response};
 #[utoipa::path(
 put,
 path = "/service/{service}/app/{app}/tenant/{tenant}/version/{version}",
-request_body = ServiceVersionCreateRequest,
+request_body = ServiceVersionRequest,
 responses(
 (status = 200, description = "create service version done successfully", body = ServiceVersion),
 (status = 404, description = "Service version not found")
@@ -27,14 +25,10 @@ params(
 )
 )]
 pub async fn service_version_put(Path((name, application, tenant, version)): Path<(String, String, String, String)>,
-                                 Json(payload) : Json<ServiceVersionCreateRequest>) -> impl IntoResponse {
-    let mut req = ServiceVersionRequest::build_get_request(version, name, application, tenant);
-    if !ServiceVersion::persisted(to_value(&req).unwrap()).await {
-        req.set_repo_ref(payload.repo_ref);
-        req.set_builder(payload.builder);
-        let msg = RequestMessage::new(DispatchCommand::from(AppCommand::CreateServiceVersion { value: req }));
-        message_into_response(msg, StatusCode::ACCEPTED).await
-    } else {
-        (StatusCode::ALREADY_REPORTED, Json(req)).into_response()
-    }
+                                 Json(payload) : Json<ServiceVersionRequest>) -> impl IntoResponse {
+    let source = ServiceVersionRequest::build_get_request(version, name, application, tenant);
+    let msg = RequestMessage::new(
+        DispatchCommand::from(AppCommand::PersistServiceVersion { source, request: payload })
+    );
+    message_into_response(msg, StatusCode::ACCEPTED).await
 }

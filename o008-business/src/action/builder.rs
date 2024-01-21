@@ -12,7 +12,7 @@ pub async fn create(brq: BuilderRequest) -> DispatchResult<Value> {
     match brq.is_valid_create() {
         Ok(()) => {
             let builder: Builder = From::<BuilderRequest>::from(brq.clone());
-            let r = persist_json(Box::new(builder)).await;
+            let r = persist_json(&builder).await;
             r.map_err(|e| DispatcherError::from(Create(format!("create action: {}", e))))
         }
         Err(e) => Err(DispatcherError::from(InvalidRequest(format!("create action: {}", e))))
