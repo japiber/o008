@@ -33,7 +33,7 @@ pub fn send_response(msg: AppResponseMessage) -> bool {
 pub async fn bus_processor<D>(msg: AppRequestMessage, dispatcher: D) -> Option<DispatchResult<Value>>
     where D: CommandDispatcher + Send + Unpin + Sized + 'static
 {
-    let trq = launch_request_poll(msg.id(), dispatcher);
+    let trq = launch_request_poll(dispatcher);
     let trs= launch_response_poll(msg.id());
     if send_request(msg) {
         trq.await.unwrap();
@@ -69,7 +69,7 @@ pub fn launch_response_poll(target: Uuid) -> JoinHandle<Option<DispatchResult<Va
     })
 }
 
-pub fn launch_request_poll<D>(target: Uuid, dispatcher: D) -> JoinHandle<()>
+pub fn launch_request_poll<D>(dispatcher: D) -> JoinHandle<()>
     where D: CommandDispatcher + Send + Unpin + Sized + 'static
 {
     let req_bus = request_bus();
@@ -78,9 +78,9 @@ pub fn launch_request_poll<D>(target: Uuid, dispatcher: D) -> JoinHandle<()>
         loop {
             match rx.try_recv() {
                 Ok(msg) =>
-                    match dispatcher.dispatch(target).await {
+                    match dispatcher.dispatch(msg.id()).await {
                         ResultDispatcher::Done(b) => {
-                            info!("target {} request message dispatched", target);
+                            info!("target {} request message dispatched", msg.id());
                             if !b {
                                 error!("could not dispatch message: {:?}", msg)
                             }
