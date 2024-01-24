@@ -9,11 +9,11 @@ use o008_message_bus::helper::bus_processor;
 
 mod service;
 mod service_version;
-pub use service::service_get;
-pub use service::service_put;
+pub use service::{service_get, service_put, service_versions_get};
 pub use service_version::service_version_put;
 pub use service::__path_service_get;
 pub use service::__path_service_put;
+pub use service::__path_service_versions_get;
 pub use service_version::__path_service_version_put;
 
 

@@ -21,3 +21,5 @@ o008-dal = { path = "../o008-dal" }
 o008-common = {  path = "../o008-common"  }
 tracing = "0.1"
 utoipa = { features = ["uuid", "chrono"], version = "4.1" }
+futures = { version = "0.3.30", features = [] }
+serde_with = "3.4.0"
