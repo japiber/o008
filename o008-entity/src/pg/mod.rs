@@ -9,5 +9,5 @@ pub use application::Application;
 pub use builder::Builder;
 pub use repo_reference::RepoReference;
 pub use service::Service;
-pub use service_version::ServiceVersion;
+pub use service_version::{ServiceVersion, ServiceVersionItem};
 pub use tenant::Tenant;

@@ -1,3 +1,4 @@
+
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
@@ -12,12 +13,21 @@ use crate::pg::RepoReference;
 
 type ServiceVersionDao = o008_dal::pg::ServiceVersion;
 
-#[derive(Debug, PartialEq, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ToSchema)]
 pub struct ServiceVersion {
     #[serde(rename(serialize = "_id", deserialize = "id"))]
     id: Uuid,
     version: String,
     service: Service,
+    repo_ref: RepoReference,
+    builder: Builder,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ToSchema)]
+pub struct ServiceVersionItem {
+    #[serde(rename(serialize = "_id", deserialize = "id"))]
+    id: Uuid,
+    version: String,
     repo_ref: RepoReference,
     builder: Builder,
 }
@@ -61,6 +71,50 @@ impl ServiceVersion {
 
     pub fn builder(&self) -> &Builder {
         &self.builder
+    }
+
+    pub fn set_service(&mut self, service: Service) {
+        self.service = service
+    }
+
+    pub fn set_repo_ref(&mut self, repo_ref: RepoReference) {
+        self.repo_ref = repo_ref
+    }
+
+    pub fn set_builder(&mut self, builder : Builder) {
+        self.builder = builder
+    }
+
+    pub fn set_version(&mut self, version: &str) {
+        self.version = String::from(version)
+    }
+
+    pub async fn service_versions(qry: Value) -> Result<Vec<ServiceVersionItem>, EntityError> {
+        match ServiceVersionDao::service_versions(qry).await {
+            Ok(versions) => {
+                let mut v : Vec<ServiceVersionItem> = Vec::new();
+                for sv in versions {
+                    let short: ServiceVersionItem = AsyncFrom::<ServiceVersionDao>::from(sv).await;
+                    v.push(short)
+                }
+                Ok(v)
+            },
+            Err(e) => match e {
+                DalError::InvalidKey(_) => Err(EntityError::WrongQuery(format!("{}: {}", Self::type_name(), e))),
+                _ => Err(EntityError::NotFound(format!("{}: {}", Self::type_name(), e))),
+            }
+        }
+    }
+}
+
+impl ServiceVersionItem {
+    pub fn load(id: Uuid, version: &str, repo_ref: RepoReference, builder: Builder) -> Self {
+        Self {
+            id,
+            version: String::from(version),
+            repo_ref,
+            builder,
+        }
     }
 }
 
@@ -142,5 +196,14 @@ impl AsyncFrom<ServiceVersionDao> for ServiceVersion {
         let repo_ref = RepoReference::read(json!({"id": value.repo_ref()})).await.unwrap();
         let builder = Builder::read(json!({"id": value.builder().to_string()})).await.unwrap();
         Self::load(value.id(), value.version(), *service, *repo_ref, *builder)
+    }
+}
+
+#[async_trait]
+impl AsyncFrom<ServiceVersionDao> for ServiceVersionItem {
+    async fn from(value: ServiceVersionDao) -> Self {
+        let repo_ref = RepoReference::read(json!({"id": value.repo_ref()})).await.unwrap();
+        let builder = Builder::read(json!({"id": value.builder().to_string()})).await.unwrap();
+        Self::load(value.id(), value.version(), *repo_ref, *builder)
     }
 }

@@ -5,7 +5,7 @@ use sqlx::Postgres;
 use uuid::Uuid;
 use o008_dal::{DalError, DaoCommand, DaoQuery};
 use crate::{DestroyEntity, Entity, EntityError, PersistEntity, QueryEntity};
-use crate::pg::Application;
+use crate::pg::{Application, ServiceVersionItem};
 use crate::pg::application::ApplicationDao;
 use utoipa::ToSchema;
 use o008_common::{AsyncFrom, ServiceRequest};
@@ -13,6 +13,7 @@ use o008_dal::pg::{PgDao};
 
 type ServiceDao = o008_dal::pg::Service;
 
+#[serde_with::skip_serializing_none]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ToSchema)]
 pub struct Service {
     #[serde(rename(serialize = "_id", deserialize = "id"))]
@@ -21,6 +22,7 @@ pub struct Service {
     original_name: String,
     application: Application,
     default_repo: String,
+    versions: Option<Vec<ServiceVersionItem>>
 }
 
 impl Service {
@@ -31,6 +33,7 @@ impl Service {
             original_name: String::from(name),
             application: app,
             default_repo: String::from(repo),
+            versions: None
         }
     }
 
@@ -41,6 +44,7 @@ impl Service {
             original_name: String::from(original_name),
             application: app,
             default_repo: String::from(repo),
+            versions: None,
         }
     }
 
@@ -75,6 +79,10 @@ impl Service {
         if let Some(default_repo) = srq.default_repo() {
             self.default_repo = default_repo;
         }
+    }
+
+    pub fn set_versions(&mut self, versions: Vec<ServiceVersionItem>) {
+        self.versions = Some(versions)
     }
 }
 
@@ -112,13 +120,9 @@ impl PersistEntity<ServiceDao, PgDao, Postgres> for Service {
         };
         match r {
             Ok(_) => {
-                Ok(Box::new(Self {
-                    id: dao.id(),
-                    name: String::from(&self.name),
-                    original_name: String::from(&self.original_name),
-                    application: self.application.clone(),
-                    default_repo: String::from(&self.default_repo),
-                }))
+                Ok(Box::new(
+                    Self::load(dao.id(), &self.name, &self.original_name, self.application(), &self.default_repo)
+                ))
             },
             Err(e) => Err(EntityError::Persist(e))
         }

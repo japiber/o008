@@ -13,7 +13,7 @@ pub use pg::Application;
 pub use pg::Builder;
 pub use pg::RepoReference;
 pub use pg::Service;
-pub use pg::ServiceVersion;
+pub use pg::{ServiceVersion, ServiceVersionItem};
 pub use pg::Tenant;
 
 
@@ -50,7 +50,7 @@ pub trait DestroyEntity<T, C, DB>: Entity<T>
     async fn destroy(&self) -> Result<(), EntityError>;
 }
 
-pub async fn persist_json<E, T, C, DB>(entity: Box<E>) -> Result<Value, EntityError>
+pub async fn persist_json<E, T, C, DB>(entity: &E) -> Result<Value, EntityError>
     where E: PersistEntity<T, C, DB> + Serialize,
           T: DaoCommand<C, DB> + Send + Unpin + Sized,
           C: CommandContext<DB>,

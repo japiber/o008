@@ -2,11 +2,9 @@ use axum::extract::Path;
 use axum::http::StatusCode;
 use axum::Json;
 use axum::response::IntoResponse;
-use serde_json::to_value;
-use o008_common::{AppCommand, ServiceVersionCreateRequest, ServiceVersionRequest};
-use o008_dispatcher::{DispatchCommand, DispatchMessage};
-use o008_entity::{QueryEntity, ServiceVersion};
-use crate::handler::dispatch_error_into_response;
+use o008_common::{AppCommand, DispatchCommand, ServiceVersionRequest};
+use o008_message_bus::{RequestMessage};
+use crate::handler::{message_into_response};
 
 /// Create or Update Service item by service name, application name and tenant name
 ///
@@ -14,7 +12,7 @@ use crate::handler::dispatch_error_into_response;
 #[utoipa::path(
 put,
 path = "/service/{service}/app/{app}/tenant/{tenant}/version/{version}",
-request_body = ServiceVersionCreateRequest,
+request_body = ServiceVersionRequest,
 responses(
 (status = 200, description = "create service version done successfully", body = ServiceVersion),
 (status = 404, description = "Service version not found")
@@ -27,17 +25,10 @@ params(
 )
 )]
 pub async fn service_version_put(Path((name, application, tenant, version)): Path<(String, String, String, String)>,
-                                 Json(payload) : Json<ServiceVersionCreateRequest>) -> impl IntoResponse {
-    let mut req = ServiceVersionRequest::build_get_request(version, name, application, tenant);
-    if !ServiceVersion::persisted(to_value(&req).unwrap()).await {
-        req.set_repo_ref(payload.repo_ref);
-        req.set_builder(payload.builder);
-        let msg = DispatchMessage::send(DispatchCommand::from(AppCommand::CreateServiceVersion { value: req }));
-        match msg.poll().await {
-            Ok(srv) => (StatusCode::OK, Json(srv)).into_response(),
-            Err(e) => dispatch_error_into_response(e)
-        }
-    } else {
-        (StatusCode::ALREADY_REPORTED, Json(req)).into_response()
-    }
+                                 Json(payload) : Json<ServiceVersionRequest>) -> impl IntoResponse {
+    let source = ServiceVersionRequest::build_get_request(version, name, application, tenant);
+    let msg = RequestMessage::new(
+        DispatchCommand::from(AppCommand::PersistServiceVersion { source, request: payload })
+    );
+    message_into_response(msg, StatusCode::ACCEPTED).await
 }

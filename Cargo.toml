@@ -2,18 +2,18 @@
 resolver = "2"
 members = [
     ".",
+    "o008-business",
     "o008-common",
     "o008-setting",
     "o008-dal",
     "o008-entity",
-    "o008-action",
-    "o008-dispatcher",
     "o008-cli",
-    "o008-api", "o008-action",
+    "o008-api",
+    "o008-message-bus"
 ]
 
 [workspace.package]
-version = "0.3.0"
+version = "0.4.0"
 license = "MIT OR Apache-2.0"
 edition = "2021"
 repository = "https://github.com/japiber/o008"
