@@ -29,6 +29,8 @@ impl RequestMessageCommand {
                 handler::request_with_source(from, source, request, service::persist).await,
             AppCommand::GetService { request } =>
                 handler::request(from, request, service::get).await,
+            AppCommand::GetServiceVersions { request } =>
+                handler::request(from, request, service::get_with_versions).await,
             AppCommand::PersistServiceVersion { source, request } =>
                 handler::request_with_source(from, source, request, service_version::persist).await,
         };

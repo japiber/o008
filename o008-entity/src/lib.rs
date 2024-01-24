@@ -13,7 +13,7 @@ pub use pg::Application;
 pub use pg::Builder;
 pub use pg::RepoReference;
 pub use pg::Service;
-pub use pg::ServiceVersion;
+pub use pg::{ServiceVersion, ServiceVersionItem};
 pub use pg::Tenant;
 
 

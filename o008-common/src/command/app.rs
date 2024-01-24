@@ -41,6 +41,10 @@ pub enum AppCommand {
         #[arg(short, long)]
         request: ServiceRequest,
     },
+    GetServiceVersions {
+        #[arg(short, long)]
+        request: ServiceRequest,
+    },
     PersistServiceVersion {
         #[arg(short, long)]
         source: ServiceVersionRequest,

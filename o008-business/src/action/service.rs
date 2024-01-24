@@ -1,10 +1,10 @@
-use serde_json::{to_value, Value};
+use serde_json::{json, to_value, Value};
 use tracing::info;
 
 use o008_common::{RequestValidator, ServiceRequest, DispatchResult};
-use o008_entity::{Application, persist_json, QueryEntity, Service};
+use o008_entity::{Application, persist_json, QueryEntity, Service, ServiceVersion};
 
-use o008_common::error::AppCommandError::{Create, InvalidRequest, InvalidResponse, NotFound, Update};
+use o008_common::error::AppCommandError::{Create, InvalidRequest, NotFound, Update};
 use o008_common::error::DispatcherError;
 
 pub async fn persist(src: ServiceRequest, req: ServiceRequest) -> DispatchResult<Value> {
@@ -24,9 +24,23 @@ pub async fn get(srq: ServiceRequest) -> DispatchResult<Value> {
     info!("get service {:?}", srq);
     match srq.is_valid_get() {
         Ok(()) => match Service::read(to_value(srq).unwrap()).await {
-            Ok(srv) => match to_value(*srv) {
-                Ok(v) => Ok(v),
-                Err(e) => Err(DispatcherError::from(InvalidResponse(format!("get action: {}", e))))
+            Ok(srv) => Ok(to_value(*srv).unwrap()),
+            Err(e) => Err(DispatcherError::from(NotFound(format!("get action: {}", e))))
+        },
+        Err(e) => Err(DispatcherError::from(InvalidRequest(format!("get action: {}", e))))
+    }
+}
+
+pub async fn get_with_versions(srq: ServiceRequest) -> DispatchResult<Value> {
+    info!("get service versions {:?}", srq);
+    match srq.is_valid_get() {
+        Ok(()) => match Service::read(to_value(srq).unwrap()).await {
+            Ok(srv) => {
+               let mut vsrv = srv.clone();
+                if let Ok(versions) = ServiceVersion::service_versions(json!({"service": srv.id()})).await {
+                    vsrv.set_versions(versions)
+                }
+                Ok(to_value(vsrv).unwrap())
             },
             Err(e) => Err(DispatcherError::from(NotFound(format!("get action: {}", e))))
         },

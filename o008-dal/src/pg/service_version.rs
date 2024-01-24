@@ -45,6 +45,20 @@ impl ServiceVersion {
     pub fn builder(&self) -> Uuid {
         self.builder
     }
+
+    pub async fn service_versions(key: Value) -> Result<Vec<Self>, DalError> {
+        match hard_check_key(&key, &["service"]) {
+            Ok(service_key) => {
+                let id = service_key.first().unwrap();
+                Self::query_ctx().await.fetch_all(
+                    sqlx::query_as::<_, Self>("SELECT id, version, service, repo_ref, builder FROM service_version WHERE service=$1")
+                        .bind(Uuid::parse_str(id.as_str().unwrap()).unwrap())
+                ).await
+
+            }
+            Err(e) => Err(DalError::InvalidKey(format!("service version dao read {}", e)))
+        }
+    }
 }
 
 #[async_trait]
